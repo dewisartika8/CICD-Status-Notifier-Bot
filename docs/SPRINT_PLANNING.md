@@ -20,13 +20,14 @@
   - Unit and integration testing
 
 #### Developer 2: Integration & Frontend Lead
-- **Focus Areas:** Telegram bot, frontend dashboard, DevOps
-- **Technologies:** Telegram Bot API, React, Docker
+- **Focus Areas:** Telegram bot, React dashboard, DevOps integration
+- **Technologies:** Telegram Bot API, React, TypeScript, MUI, Docker
 - **Responsibilities:**
-  - Telegram bot development
-  - Frontend dashboard
+  - Telegram bot development and commands
+  - Frontend dashboard with React/TypeScript
+  - UI/UX implementation with Material-UI
   - Docker setup and deployment
-  - End-to-end testing
+  - End-to-end testing and integration
 
 ---
 
@@ -160,61 +161,70 @@
 
 ---
 
-## Sprint 3: Dashboard Backend & Advanced Features
+## Sprint 3: Dashboard API & React Frontend Setup
 **Duration:** Week 5-6  
-**Goal:** Develop dashboard API and enhance bot with advanced features
+**Goal:** Develop dashboard API and initialize React frontend foundation
 
 ### Sprint 3 Goals
 - Create comprehensive dashboard API
+- Initialize React frontend with TypeScript setup
 - Implement build metrics and analytics
+- Create basic dashboard UI components
 - Add advanced bot commands
-- Enhance error handling and logging
 
 ### User Stories
 
-#### Story 3.1: Dashboard API (13 points)
-**As a project manager, I want a web dashboard to monitor CI/CD status so that I can see overall project health**
+#### Story 3.1: Dashboard API Development (10 points)
+**As a project manager, I want a web dashboard API to monitor CI/CD status so that the frontend can display project health**
 - **Tasks:**
   - Create dashboard API endpoints
   - Implement project metrics calculation
   - Add build history endpoints with pagination
   - Create real-time status endpoints
-  - Add API authentication (if needed)
+  - Add CORS configuration for frontend
 
-#### Story 3.2: Analytics & Metrics (8 points)
+#### Story 3.2: React Frontend Foundation (8 points)
+**As a frontend developer, I want a well-structured React setup so that I can build the dashboard UI**
+- **Tasks:**
+  - Initialize React project with Vite and TypeScript
+  - Set up Material-UI (MUI) with custom theme
+  - Configure Redux Toolkit and RTK Query
+  - Create basic project structure and routing
+  - Set up API service layer
+
+#### Story 3.3: Basic Dashboard Components (8 points)
+**As a user, I want to see basic dashboard interface so that I can view project status**
+- **Tasks:**
+  - Create main layout with header and sidebar
+  - Implement project list component with cards
+  - Add basic status indicators and badges
+  - Create loading states and error handling
+  - Implement responsive design foundation
+
+#### Story 3.4: Analytics & Metrics (5 points)
 **As a DevOps engineer, I want to see build metrics so that I can analyze pipeline performance**
 - **Tasks:**
   - Implement build success rate calculation
   - Add average build duration metrics
-  - Create build trends over time
-  - Implement status distribution analytics
+  - Create build trends over time API
   - Add performance optimization for metrics queries
 
-#### Story 3.3: Advanced Bot Commands (5 points)
+#### Story 3.5: Advanced Bot Commands (5 points)
 **As a user, I want advanced bot commands so that I can get detailed information**
 - **Tasks:**
   - Implement `/history <project> [limit]` command
   - Add `/metrics <project>` command
-  - Implement admin commands for project management
-  - Add command rate limiting
   - Enhance error messages and help text
-
-#### Story 3.4: Enhanced Webhook Processing (5 points)
-**As a system, I want robust webhook processing so that no events are lost**
-- **Tasks:**
-  - Add webhook payload validation
-  - Implement event deduplication
-  - Add support for multiple event types
-  - Enhance error handling and retry logic
-  - Add webhook processing metrics
 
 ### Sprint 3 Acceptance Criteria
 - [ ] Dashboard API provides comprehensive project data
+- [ ] React frontend foundation is properly configured
+- [ ] Basic dashboard components render correctly
 - [ ] Metrics calculations are accurate and performant
 - [ ] Advanced bot commands work correctly
-- [ ] Webhook processing is robust and reliable
 - [ ] All endpoints are properly documented
 - [ ] Performance meets requirements (<2s response time)
+- [ ] Frontend successfully connects to backend API
 
 ### Sprint 3 Testing Focus
 - Dashboard API endpoint tests
@@ -225,61 +235,70 @@
 
 ---
 
-## Sprint 4: Frontend Dashboard & Final Polish
+## Sprint 4: Advanced Frontend Features & Production Deployment
 **Duration:** Week 7-8  
-**Goal:** Complete frontend dashboard, finalize deployment, and polish all features
+**Goal:** Complete advanced dashboard features, implement real-time updates, and finalize production deployment
 
 ### Sprint 4 Goals
-- Develop React frontend dashboard
-- Complete deployment setup
-- Final testing and bug fixes
-- Documentation and handover preparation
+- Complete React dashboard with advanced features
+- Implement real-time WebSocket integration
+- Add data visualization and analytics
+- Finalize production deployment
+- Complete comprehensive testing
 
 ### User Stories
 
-#### Story 4.1: Frontend Dashboard (13 points)
-**As a project manager, I want a visual dashboard so that I can easily monitor all projects**
+#### Story 4.1: Advanced Dashboard Features (12 points)
+**As a project manager, I want advanced dashboard capabilities so that I can analyze CI/CD performance**
 - **Tasks:**
-  - Set up React project with TypeScript
-  - Create project overview page
-  - Implement project detail views
-  - Add build history visualization
-  - Create responsive design with Tailwind CSS
+  - Implement project detail pages with comprehensive views
+  - Add interactive charts with Chart.js for build trends
+  - Create build history visualization with filters
+  - Implement project configuration management interface
+  - Add user management and settings pages
 
-#### Story 4.2: Dashboard Features (8 points)
-**As a user, I want interactive dashboard features so that I can explore data effectively**
+#### Story 4.2: Real-time Updates & WebSocket (8 points)
+**As a user, I want real-time updates so that I see current status without refreshing**
 - **Tasks:**
-  - Implement real-time status updates
-  - Add filtering and search functionality
-  - Create charts for metrics visualization
-  - Add project management interface
-  - Implement error handling and loading states
+  - Implement WebSocket connection from frontend
+  - Add real-time status updates for builds
+  - Create live notifications for build events
+  - Handle connection management and reconnection
+  - Update Redux store with real-time data
 
-#### Story 4.3: Deployment & DevOps (5 points)
-**As a DevOps engineer, I want a production-ready deployment so that the system can be reliably hosted**
+#### Story 4.3: Data Analytics & Visualization (6 points)
+**As a DevOps engineer, I want comprehensive analytics so that I can optimize CI/CD performance**
 - **Tasks:**
-  - Complete Docker Compose setup
-  - Create production configuration
-  - Set up database migrations for production
-  - Add health check endpoints
-  - Create deployment documentation
+  - Create analytics dashboard with success rate charts
+  - Implement build duration trend analysis
+  - Add project performance comparison features
+  - Create exportable reports functionality
+  - Implement responsive chart design
 
-#### Story 4.4: Final Polish & Documentation (5 points)
+#### Story 4.4: Production Deployment & Testing (8 points)
+**As a team, we want production-ready deployment so that the system can be reliably hosted**
+- **Tasks:**
+  - Complete Docker Compose production setup
+  - Implement environment-specific configurations
+  - Add comprehensive E2E testing with Playwright
+  - Create deployment CI/CD pipeline
+  - Complete security hardening and performance optimization
+
+#### Story 4.5: Final Polish & Documentation (3 points)
 **As a team, we want polished software and complete documentation so that the project is ready for handover**
 - **Tasks:**
-  - Complete API documentation (Swagger)
-  - Write user guide and setup instructions
-  - Final bug fixes and testing
-  - Performance optimization
-  - Code cleanup and refactoring
+  - Complete user guide and API documentation
+  - Final UI/UX polish and accessibility improvements
+  - Performance optimization and bug fixes
 
 ### Sprint 4 Acceptance Criteria
-- [ ] Frontend dashboard is fully functional
-- [ ] Real-time updates work correctly
-- [ ] Deployment process is documented and tested
-- [ ] All documentation is complete
-- [ ] Performance requirements are met
-- [ ] Security requirements are satisfied
+- [ ] Advanced dashboard features are fully functional
+- [ ] Real-time updates work seamlessly via WebSocket
+- [ ] Data visualization is interactive and responsive
+- [ ] Production deployment is automated and documented
+- [ ] Comprehensive testing coverage is achieved
+- [ ] All documentation is complete and accurate
+- [ ] Performance and security requirements are met
 
 ### Sprint 4 Testing Focus
 - Frontend component testing

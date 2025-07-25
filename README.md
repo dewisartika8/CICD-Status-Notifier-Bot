@@ -9,12 +9,12 @@
 > **Tugas Akhir - Workshop AI Enhancement**  
 > **Team:** 2 developers | **Duration:** 8 weeks | **Methodology:** Test-Driven Development (TDD)
 
-A comprehensive CI/CD status notification system that integrates with GitHub Actions to deliver real-time build and deployment notifications via Telegram, complete with a web dashboard for monitoring and analytics.
+A comprehensive CI/CD status notification system that integrates with GitHub Actions to deliver real-time build and deployment notifications via Telegram, complete with a modern React dashboard for monitoring and analytics.
 
 ## 🚀 Project Overview
 
 ### Problem Statement
-Development teams need immediate visibility into their CI/CD pipeline status. Current solutions often require manual checking of multiple platforms or lack consolidated reporting. This project creates a centralized notification system that provides real-time updates through Telegram and a comprehensive web dashboard.
+Development teams need immediate visibility into their CI/CD pipeline status. Current solutions often require manual checking of multiple platforms or lack consolidated reporting. This project creates a centralized notification system that provides real-time updates through Telegram and a comprehensive React dashboard with modern UI/UX.
 
 ### Solution
 CI/CD Status Notifier Bot provides:
@@ -41,12 +41,15 @@ CI/CD Status Notifier Bot provides:
 - `/history <project>` - View recent build history
 - `/help` - Show available commands
 
-### 📊 Web Dashboard
-- Real-time project status overview
-- Build success rate analytics
-- Deployment frequency metrics
-- Historical trend visualization
-- Project configuration management
+### 📊 React Dashboard Features
+- **Real-time Overview**: Live project status dashboard with auto-refresh
+- **Analytics & Metrics**: Build success rates, deployment frequency, and performance trends
+- **Interactive Charts**: Modern data visualization with filtering and drill-down capabilities
+- **Project Management**: Configuration interface for managing monitored projects
+- **User Management**: Team member administration with role-based permissions
+- **Notification Settings**: Configure alert preferences and escalation rules
+- **Historical Reports**: Detailed trend analysis and export capabilities
+- **Responsive Design**: Mobile-first UI that works across all devices
 
 ### 🛠 Technical Features
 - RESTful API backend with Go/Fiber
@@ -69,14 +72,15 @@ CI/CD Status Notifier Bot provides:
                        ┌──────────────────┐    ┌─────────────────┐
                        │   PostgreSQL     │    │   React         │
                        │   Database       │◀───│   Dashboard     │
-                       └──────────────────┘    └─────────────────┘
+                       └──────────────────┘    │   (TypeScript)  │
+                                               └─────────────────┘
 ```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Go 1.21+
-- Node.js 18+
+- Node.js 18+ with npm/yarn
 - Docker & Docker Compose
 - PostgreSQL 15+ (or use Docker)
 
@@ -274,11 +278,18 @@ This is an educational project for Binar Academy's final assignment. The develop
 
 Comprehensive documentation is available in the `/docs` folder:
 
+### 📋 Project Documentation
 - **[PRD.md](docs/PRD.md)** - Product Requirements Document
 - **[TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md)** - Technical Architecture
 - **[SPRINT_PLANNING.md](docs/SPRINT_PLANNING.md)** - 8-week Development Plan
 - **[TDD_GUIDE.md](docs/TDD_GUIDE.md)** - Test-Driven Development Guide
 - **[PROJECT_SETUP.md](docs/PROJECT_SETUP.md)** - Detailed Setup Instructions
+
+### 👥 Team Task Management
+- **[TASK_ASSIGNMENT_ARIF.md](docs/task/TASK_ASSIGNMENT_ARIF.md)** - Arif's Individual Task List (Backend Core Lead)
+- **[TASK_ASSIGNMENT_DEWI.md](docs/task/TASK_ASSIGNMENT_DEWI.md)** - Dewi's Individual Task List (Integration & Frontend Lead)
+- **[TEAM_PROGRESS_TRACKER.md](docs/task/TEAM_PROGRESS_TRACKER.md)** - Shared Progress Tracking Dashboard
+- **[DAILY_COORDINATION_GUIDE.md](docs/task/DAILY_COORDINATION_GUIDE.md)** - Quick Reference for Daily Coordination
 
 ## 📄 License
 

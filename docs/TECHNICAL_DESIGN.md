@@ -12,20 +12,15 @@
                                 │
                                 ▼
                        ┌──────────────────┐    ┌─────────────────┐
-                       │   PostgreSQL     │    │   Web Dashboard │
-                       │   Database       │◀───│   (React)       │
-                       └──────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌──────────────────┐
-                       │   Background     │
-                       │   Jobs Queue     │
-                       └──────────────────┘
+                       │   PostgreSQL     │    │   React         │
+                       │   Database       │◀───│   Dashboard     │
+                       └──────────────────┘    │   (TypeScript)  │
+                                              └─────────────────┘
 ```
 
 ### 2. Technology Stack
 
-#### Backend
+#### Backend Infrastructure
 - **Language:** Go 1.21+
 - **Framework:** Fiber v2.x (Fast, Express-inspired web framework)
 - **Database:** PostgreSQL 15+
@@ -34,14 +29,16 @@
 - **Testing:** Testify, GoMock
 - **Documentation:** Swagger/OpenAPI
 
-#### Frontend (Dashboard)
+#### Frontend Stack
 - **Framework:** React 18+ with TypeScript
-- **State Management:** React Query + Zustand
-- **UI Library:** Tailwind CSS + Headless UI
-- **Charts:** Recharts
-- **Build Tool:** Vite
+- **State Management:** Redux Toolkit + RTK Query for API management
+- **UI Library:** Material-UI (MUI) with custom theming
+- **Charts:** Chart.js with react-chartjs-2 for advanced data visualization
+- **Build Tool:** Vite for fast development and optimized builds
+- **Styling:** Emotion CSS-in-JS with responsive design
+- **Testing:** Vitest + React Testing Library
 
-#### Infrastructure
+#### Infrastructure & DevOps
 - **Containerization:** Docker + Docker Compose
 - **Database Migrations:** Golang-migrate
 - **Environment Management:** Viper
@@ -194,9 +191,165 @@ var botCommands = []BotCommand{
 }
 ```
 
-### 5. Service Architecture
+### 5. Frontend Architecture
 
-#### 5.1 Core Services
+#### 5.1 React Component Structure
+
+```
+frontend/
+├── public/
+│   ├── index.html
+│   └── manifest.json
+├── src/
+│   ├── components/
+│   │   ├── Layout/
+│   │   │   ├── Header.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   └── Footer.tsx
+│   │   ├── Dashboard/
+│   │   │   ├── Overview.tsx
+│   │   │   ├── ProjectCard.tsx
+│   │   │   ├── MetricsChart.tsx
+│   │   │   └── BuildHistory.tsx
+│   │   ├── Projects/
+│   │   │   ├── ProjectList.tsx
+│   │   │   ├── ProjectDetail.tsx
+│   │   │   └── ProjectForm.tsx
+│   │   └── Common/
+│   │       ├── LoadingSpinner.tsx
+│   │       ├── ErrorBoundary.tsx
+│   │       └── StatusBadge.tsx
+│   ├── pages/
+│   │   ├── Dashboard.tsx
+│   │   ├── Projects.tsx
+│   │   ├── Analytics.tsx
+│   │   └── Settings.tsx
+│   ├── hooks/
+│   │   ├── useApi.ts
+│   │   ├── useWebSocket.ts
+│   │   └── useLocalStorage.ts
+│   ├── services/
+│   │   ├── api.ts
+│   │   ├── websocket.ts
+│   │   └── auth.ts
+│   ├── store/
+│   │   ├── store.ts
+│   │   ├── projectSlice.ts
+│   │   ├── buildSlice.ts
+│   │   └── authSlice.ts
+│   ├── types/
+│   │   ├── project.ts
+│   │   ├── build.ts
+│   │   └── api.ts
+│   └── utils/
+│       ├── formatters.ts
+│       ├── constants.ts
+│       └── helpers.ts
+```
+
+#### 5.2 State Management with Redux Toolkit
+
+```typescript
+// store/projectSlice.ts
+interface ProjectState {
+  projects: Project[];
+  selectedProject: Project | null;
+  loading: boolean;
+  error: string | null;
+}
+
+const projectSlice = createSlice({
+  name: 'projects',
+  initialState,
+  reducers: {
+    setProjects: (state, action) => {
+      state.projects = action.payload;
+    },
+    selectProject: (state, action) => {
+      state.selectedProject = action.payload;
+    },
+    updateProjectStatus: (state, action) => {
+      const { projectId, status } = action.payload;
+      const project = state.projects.find(p => p.id === projectId);
+      if (project) {
+        project.lastBuild = status;
+      }
+    }
+  }
+});
+```
+
+#### 5.3 Real-time Updates with WebSocket
+
+```typescript
+// services/websocket.ts
+class WebSocketService {
+  private ws: WebSocket | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+
+  connect(url: string): void {
+    this.ws = new WebSocket(url);
+    
+    this.ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      this.handleMessage(data);
+    };
+    
+    this.ws.onclose = () => {
+      this.handleReconnect();
+    };
+  }
+
+  private handleMessage(data: any): void {
+    switch (data.type) {
+      case 'build_status_update':
+        store.dispatch(updateProjectStatus(data.payload));
+        break;
+      case 'new_build_event':
+        store.dispatch(addBuildEvent(data.payload));
+        break;
+    }
+  }
+}
+```
+
+#### 5.4 API Integration with RTK Query
+
+```typescript
+// services/api.ts
+export const apiSlice = createApi({
+  reducerPath: 'api',
+  baseQuery: fetchBaseQuery({
+    baseUrl: '/api/v1',
+    prepareHeaders: (headers, { getState }) => {
+      const token = (getState() as RootState).auth.token;
+      if (token) {
+        headers.set('authorization', `Bearer ${token}`);
+      }
+      return headers;
+    },
+  }),
+  tagTypes: ['Project', 'Build'],
+  endpoints: (builder) => ({
+    getProjects: builder.query<Project[], void>({
+      query: () => 'projects',
+      providesTags: ['Project'],
+    }),
+    getProjectBuilds: builder.query<BuildEvent[], string>({
+      query: (projectId) => `projects/${projectId}/builds`,
+      providesTags: ['Build'],
+    }),
+    getProjectMetrics: builder.query<ProjectMetrics, string>({
+      query: (projectId) => `projects/${projectId}/metrics`,
+    }),
+  }),
+});
+```
+
+### 6. Backend Service Architecture
+
+#### 6.1 Core Services
 
 ```go
 // Webhook service - handles incoming GitHub webhooks
