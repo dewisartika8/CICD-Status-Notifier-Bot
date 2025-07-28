@@ -13,28 +13,31 @@ CICD-Status-Notifier-Bot/
 │   └── USER_GUIDE.md             # User Setup Guide
 ├── backend/                       # Go backend application
 │   ├── cmd/
-│   │   └── server/
-│   │       └── main.go           # Application entry point
+│   │   └── main.go               # Application entry point (updated structure)
 │   ├── internal/
 │   │   ├── config/               # Configuration management
-│   │   ├── models/               # Database models
-│   │   ├── repositories/         # Data access layer
+│   │   ├── domain/               # Domain layer (Clean Architecture)
+│   │   │   ├── entities/         # Business entities
+│   │   │   └── ports/            # Repository and service interfaces
+│   │   ├── repositories/         # Repository implementations (moved from adapters)
 │   │   ├── services/             # Business logic layer
-│   │   ├── handlers/             # HTTP handlers
-│   │   ├── middleware/           # HTTP middleware
-│   │   └── utils/                # Utility functions
-│   ├── pkg/                      # Shared packages
-│   │   ├── telegram/             # Telegram bot client
-│   │   ├── database/             # Database connection
-│   │   └── logger/               # Logging utilities
-│   ├── migrations/               # Database migrations
+│   │   ├── handlers/             # HTTP handlers (future)
+│   │   ├── middleware/           # HTTP middleware (future)
+│   │   └── adapters/             # External adapters
+│   │       └── database/         # Database models and adapters
+│   ├── pkg/                      # Shared packages (updated)
+│   │   ├── logger/               # Logging utilities (moved from internal)
+│   │   └── database/             # Database connection utilities
+│   ├── scripts/                  # Database migrations and build scripts (updated)
+│   │   └── migrations/           # Database migrations (moved from internal)
 │   ├── tests/                    # Test files
 │   │   ├── unit/                 # Unit tests
 │   │   ├── integration/          # Integration tests
-│   │   └── fixtures/             # Test data
-│   ├── scripts/                  # Build and deployment scripts
+│   │   └── testutils/            # Test utilities and fixtures
 │   ├── go.mod                    # Go module file
 │   ├── go.sum                    # Go module checksums
+│   ├── Makefile                  # Build automation (new)
+│   ├── README.md                 # Backend documentation (new)
 │   ├── Dockerfile               # Docker configuration
 │   └── .env.example             # Environment variables template
 ├── frontend/                     # React dashboard
@@ -109,16 +112,15 @@ git clone https://github.com/your-org/CICD-Status-Notifier-Bot.git
 cd CICD-Status-Notifier-Bot
 
 # Copy environment files
-cp backend/.env.example backend/.env
+cp backend/internal/config/config.yaml.example backend/internal/config/config.yaml
 cp frontend/.env.example frontend/.env
 
-# Start development environment
-docker-compose -f docker-compose.dev.yml up -d
-
-# Setup backend
+# Setup backend with Makefile
 cd backend
-go mod download
-go run cmd/server/main.go migrate
+make setup-dev    # This will install dependencies, tools, and setup database
+
+# Start backend development server
+make dev          # or make watch for hot reloading
 
 # Setup frontend
 cd ../frontend
@@ -164,28 +166,40 @@ git push origin feature/webhook-integration
 #### Backend Testing
 ```go
 // Unit test example
-func TestWebhookService_ProcessGitHubWebhook(t *testing.T) {
+func TestProjectService_CreateProject(t *testing.T) {
     // Arrange
-    mockBuildService := mocks.NewMockBuildService(ctrl)
-    mockTelegramService := mocks.NewMockTelegramService(ctrl)
-    service := NewWebhookService(mockBuildService, mockTelegramService)
+    mockRepo := mocks.NewMockProjectRepository(ctrl)
+    service := services.NewProjectService(mockRepo)
+    
+    project := &entities.Project{
+        Name:          "test-project",
+        RepositoryURL: "https://github.com/user/repo",
+    }
     
     // Act & Assert
-    err := service.ProcessGitHubWebhook(ctx, "project-id", payload)
+    err := service.CreateProject(ctx, project)
     assert.NoError(t, err)
 }
 
 // Integration test example
 func TestProjectRepository_Create(t *testing.T) {
-    db := setupTestDB(t)
-    repo := NewProjectRepository(db)
+    db := testutils.SetupTestDB(t)
+    repo := repositories.NewProjectRepository(db)
     
-    project := &Project{Name: "test-project"}
+    project := &entities.Project{
+        Name:          "test-project",
+        RepositoryURL: "https://github.com/user/repo",
+    }
     err := repo.Create(context.Background(), project)
     
     assert.NoError(t, err)
     assert.NotEmpty(t, project.ID)
 }
+
+// Running tests with Makefile
+// make test           # Run all tests
+// make test-coverage  # Run tests with coverage
+// make coverage       # Generate HTML coverage report
 ```
 
 #### Frontend Testing
@@ -211,13 +225,16 @@ test('renders project card with status', () => {
 ### 6. Key Implementation Guidelines
 
 #### Go Backend Best Practices
-- Use dependency injection for testability
-- Implement repository pattern for data access
-- Use context for request tracing
+- Use Clean Architecture with domain-driven design
+- Implement repository pattern with dependency injection
+- Separate domain entities from database models
+- Use context for request tracing and cancellation
 - Handle errors explicitly (no silent failures)
-- Use structured logging
-- Validate all inputs
+- Use structured logging with appropriate levels
+- Validate all inputs at service layer
 - Use database transactions where needed
+- Keep business logic in service layer, not repositories
+- Use Makefile for consistent build and test commands
 
 #### React Frontend Best Practices
 - Use TypeScript for type safety

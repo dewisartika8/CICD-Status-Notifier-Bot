@@ -23,13 +23,13 @@
 ## 📅 Sprint Overview & Progress
 
 ### Current Sprint: **Sprint 1 - Foundation & Core Infrastructure**
-**Duration:** Week 1-2 | **Status:** Not Started | **Progress:** 0%
+**Duration:** Week 1-2 | **Status:** In Progress | **Progress:** 37.5%
 
 | Developer | Story Points | Tasks Complete | In Progress | Blocked |
 |-----------|-------------|----------------|-------------|---------|
-| **Arif** | 10 points | 0/8 tasks | 0 | 0 |
+| **Arif** | 10 points | 5/8 tasks | 0 | 0 |
 | **Dewi** | 11 points | 1/8 tasks | 0 | 0 |
-| **Total** | 21 points | 0/16 tasks | 0 | 0 |
+| **Total** | 21 points | 6/16 tasks | 0 | 0 |
 
 ### Sprint History:
 | Sprint | Duration | Arif Progress | Dewi Progress | Team Velocity | Status |
@@ -46,16 +46,16 @@
 ### 🧑‍💻 Arif's Tasks (Backend Core Lead):
 | Task | Story | Estimated | Status | Notes |
 |------|-------|----------|---------|-------|
-| Design PostgreSQL schema | 1.2 | 4h | ⬜ Not Started | Priority: High |
-| Implement GORM models | 1.2 | 6h | ⬜ Not Started | Depends on schema |
-| Create migrations | 1.2 | 4h | ⬜ Not Started | |
-| Repository pattern | 1.2 | 8h | ⬜ Not Started | |
-| Repository tests | 1.2 | 6h | ⬜ Not Started | |
-| Project CRUD API | 1.4 | 8h | ⬜ Not Started | |
+| Design PostgreSQL schema | 1.2 | 4h | ✅ Complete | Database schema with hexagonal architecture |
+| Implement GORM models | 1.2 | 6h | ✅ Complete | Domain entities + GORM adapters |
+| Create migrations | 1.2 | 4h | ✅ Complete | Up/down migrations with constraints |
+| Repository pattern | 1.2 | 8h | ✅ Complete | Ports & adapters pattern implemented |
+| Repository tests | 1.2 | 6h | ✅ Complete | Unit tests for entities & business logic |
+| Project CRUD API | 1.4 | 8h | ⬜ Not Started | Next task to work on |
 | Service layer | 1.4 | 6h | ⬜ Not Started | |
 | API tests | 1.4 | 8h | ⬜ Not Started | |
 
-**Arif's Sprint 1 Progress: 0/8 tasks (0%)**
+**Arif's Sprint 1 Progress: 5/8 tasks (62.5%)**
 
 ### 👩‍💻 Dewi's Tasks (Integration & Bot Lead):
 | Task | Story | Estimated | Status | Notes |

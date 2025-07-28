@@ -1,0 +1,35 @@
+server:
+  port: "8080"
+  host: "localhost"
+  read_timeout: "30s"
+  write_timeout: "30s"
+
+database:
+  host: "localhost"
+  port: "5432"
+  user: "postgres"
+  password: "password"
+  dbname: "cicd_notifier"
+  sslmode: "disable"
+  max_open_conns: 10
+  max_idle_conns: 5
+  max_lifetime: 300 # seconds
+
+telegram:
+  bot_token: "your-telegram-bot-token"
+  webhook_url: "https://your-domain.com/webhooks/telegram"
+
+github:
+  webhook_secret: "your-github-webhook-secret"
+
+gitlab:
+  webhook_secret: "your-gitlab-webhook-secret"
+
+logging:
+  level: "info" # debug, info, warn, error
+  format: "json" # json, text
+  output: "stdout" # stdout, file
+  file_path: "logs/app.log"
+
+# Environment-specific configurations
+environment: "development" # development, staging, production
