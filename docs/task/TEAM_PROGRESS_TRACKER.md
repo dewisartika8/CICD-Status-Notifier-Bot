@@ -224,3 +224,47 @@ _________________________________
 
 **Project Status:** 🔴 Pre-Development Phase  
 **Next Milestone:** Complete Sprint 1 Setup by [Date]
+
+---
+
+## Sprint 1 Progress
+
+| Developer      | Total Tasks | Story Points | Completed | In Progress | Not Started | Progress |
+|----------------|------------|--------------|-----------|-------------|-------------|----------|
+| Dewi           | 8          | 11           | ✅ 6      | ⬜ 0        | ⬜ 2        | 75%      |
+| Backend Lead   | 8          | 11           | ✅ 6      | ⬜ 0        | ⬜ 2        | 75%      |
+
+### Dewi's Sprint 1 Tasks
+- [x] Task 1.1.1: Initialize Go module with Fiber framework
+- [x] Task 1.1.2: Set up project directory structure
+- [x] Task 1.1.3: Configure environment management (Viper)
+- [x] Task 1.1.4: Set up logging (Logrus)
+- [x] Task 1.1.5: Create Docker development environment
+- [x] Task 1.1.6: Set up GitHub Actions for CI/CD
+- [ ] Task 1.3.1: Create webhook endpoint structure
+- [ ] Task 1.3.2: Implement GitHub webhook signature verification
+
+### Backend Lead's Sprint 1 Tasks
+- [x] Task 1.1.1: Initialize Go module with Fiber framework
+- [x] Task 1.1.2: Set up project directory structure
+- [x] Task 1.1.3: Configure environment management (Viper)
+- [x] Task 1.1.4: Set up logging (Logrus)
+- [x] Task 1.1.5: Create Docker development environment
+- [x] Task 1.1.6: Set up GitHub Actions for CI/CD
+- [ ] Task 1.3.1: Create webhook endpoint structure
+- [ ] Task 1.3.2: Implement GitHub webhook signature verification
+
+---
+
+## Sprint 1 Summary
+
+- **Sprint Progress:** 75% (6/8 tasks completed)
+- **Remaining Tasks:** Webhook endpoint structure & signature verification
+- **Next Focus:** Story 1.3 (Webhook Infrastructure)
+
+---
+
+## Notes
+
+- All project setup, environment, logging, Docker, and CI/CD tasks are complete.
+- Webhook infrastructure tasks are next in queue for both developers.
