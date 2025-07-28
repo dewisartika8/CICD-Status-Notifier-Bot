@@ -1,69 +1,80 @@
 package dto
 
 import (
-	"time"
-
-	"github.com/google/uuid"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/project/domain"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/shared/domain/value_objects"
 )
 
-// Project represents a CI/CD project entity
-type Project struct {
-	ID             uuid.UUID `json:"id"`
-	Name           string    `json:"name" validate:"required,min=1,max=255"`
-	RepositoryURL  string    `json:"repository_url" validate:"required,url"`
-	WebhookSecret  string    `json:"-"` // Hidden from JSON for security
-	TelegramChatID *int64    `json:"telegram_chat_id,omitempty"`
-	IsActive       bool      `json:"is_active"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+// CreateProjectRequest represents the request to create a new project
+type CreateProjectRequest struct {
+	Name           string `json:"name" validate:"required,min=1,max=100"`
+	RepositoryURL  string `json:"repository_url" validate:"required,url"`
+	WebhookSecret  string `json:"webhook_secret" validate:"required,min=10"`
+	TelegramChatID *int64 `json:"telegram_chat_id,omitempty"`
 }
 
-// ProjectMetrics represents aggregated metrics for a project
-type ProjectMetrics struct {
-	ProjectID      uuid.UUID                      `json:"project_id"`
-	TotalBuilds    int64                          `json:"total_builds"`
-	SuccessRate    float64                        `json:"success_rate"`
-	FailureRate    float64                        `json:"failure_rate"`
-	AvgDuration    float64                        `json:"avg_duration_seconds"`
-	BuildsByStatus map[entities.BuildStatus]int64 `json:"builds_by_status"`
-	BuildsByType   map[entities.EventType]int64   `json:"builds_by_type"`
+// UpdateProjectRequest represents the request to update a project
+type UpdateProjectRequest struct {
+	Name           *string `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
+	RepositoryURL  *string `json:"repository_url,omitempty" validate:"omitempty,url"`
+	WebhookSecret  *string `json:"webhook_secret,omitempty" validate:"omitempty,min=10"`
+	TelegramChatID *int64  `json:"telegram_chat_id,omitempty"`
 }
 
-// NewProject creates a new project entity
-func NewProject(name, repositoryURL, webhookSecret string) *Project {
-	return &Project{
-		ID:            uuid.New(),
-		Name:          name,
-		RepositoryURL: repositoryURL,
-		WebhookSecret: webhookSecret,
-		IsActive:      true,
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
+// ProjectResponse represents the response containing project information
+type ProjectResponse struct {
+	ID             string                  `json:"id"`
+	Name           string                  `json:"name"`
+	RepositoryURL  string                  `json:"repository_url"`
+	Status         string                  `json:"status"`
+	TelegramChatID *int64                  `json:"telegram_chat_id,omitempty"`
+	CreatedAt      value_objects.Timestamp `json:"created_at"`
+	UpdatedAt      value_objects.Timestamp `json:"updated_at"`
+}
+
+// ListProjectFilters represents filters for listing projects
+type ListProjectFilters struct {
+	Status          *domain.ProjectStatus `json:"status,omitempty"`
+	Name            *string               `json:"name,omitempty"`
+	RepositoryURL   *string               `json:"repository_url,omitempty"`
+	HasTelegramChat *bool                 `json:"has_telegram_chat,omitempty"`
+	Limit           *int                  `json:"limit,omitempty" validate:"omitempty,min=1,max=100"`
+	Offset          *int                  `json:"offset,omitempty" validate:"omitempty,min=0"`
+	SortBy          *string               `json:"sort_by,omitempty" validate:"omitempty,oneof=name repository_url status created_at updated_at"`
+	SortOrder       *string               `json:"sort_order,omitempty" validate:"omitempty,oneof=asc desc"`
+}
+
+// ListProjectResponse represents the response for listing projects
+type ListProjectResponse struct {
+	Projects []*ProjectResponse `json:"projects"`
+	Total    int64              `json:"total"`
+	Limit    int                `json:"limit"`
+	Offset   int                `json:"offset"`
+}
+
+// ProjectStatusUpdateRequest represents the request to update project status
+type ProjectStatusUpdateRequest struct {
+	Status domain.ProjectStatus `json:"status" validate:"required,oneof=active inactive archived"`
+}
+
+// ToProjectResponse converts a domain project to a response DTO
+func ToProjectResponse(project *domain.Project) *ProjectResponse {
+	return &ProjectResponse{
+		ID:             project.ID().String(),
+		Name:           project.Name(),
+		RepositoryURL:  project.RepositoryURL(),
+		Status:         string(project.Status()),
+		TelegramChatID: project.TelegramChatID(),
+		CreatedAt:      project.CreatedAt(),
+		UpdatedAt:      project.UpdatedAt(),
 	}
 }
 
-// Validate performs basic validation on project entity
-func (p *Project) Validate() error {
-	if p.Name == "" {
-		return ErrInvalidProjectName
+// ToProjectResponseList converts a slice of domain projects to response DTOs
+func ToProjectResponseList(projects []*domain.Project) []*ProjectResponse {
+	responses := make([]*ProjectResponse, len(projects))
+	for i, project := range projects {
+		responses[i] = ToProjectResponse(project)
 	}
-	if p.RepositoryURL == "" {
-		return ErrInvalidRepositoryURL
-	}
-	return nil
-}
-
-// Update updates project fields while maintaining entity invariants
-func (p *Project) Update(name, repositoryURL string, telegramChatID *int64, isActive bool) error {
-	if name != "" {
-		p.Name = name
-	}
-	if repositoryURL != "" {
-		p.RepositoryURL = repositoryURL
-	}
-	p.TelegramChatID = telegramChatID
-	p.IsActive = isActive
-	p.UpdatedAt = time.Now()
-
-	return p.Validate()
+	return responses
 }

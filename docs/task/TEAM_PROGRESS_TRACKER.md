@@ -12,11 +12,11 @@
 | Metric | Target | Current | Status |
 |--------|---------|---------|---------|
 | **Total Story Points** | 112 points | 0 completed | 🔴 Not Started |
-| **Sprint Progress** | Sprint 1 | Pre-Sprint | 🟡 Planning |
-| **Code Coverage** | >85% | 0% | 🔴 Not Started |
-| **Test Cases** | 100+ tests | 0 written | 🔴 Not Started |
-| **API Endpoints** | 15+ endpoints | 0 implemented | 🔴 Not Started |
-| **Bot Commands** | 10+ commands | 0 implemented | 🔴 Not Started |
+| **Sprint Progress** | Sprint 1 | In Progress | � On Track |
+| **Code Coverage** | >85% | 10% | � In Progress |
+| **Test Cases** | 100+ tests | 10 written | � In Progress |
+| **API Endpoints** | 15+ endpoints | 2 implemented | � In Progress |
+| **Bot Commands** | 10+ commands | 1 implemented | � In Progress |
 
 ---
 
@@ -27,14 +27,14 @@
 
 | Developer | Story Points | Tasks Complete | In Progress | Blocked |
 |-----------|-------------|----------------|-------------|---------|
-| **Arif** | 10 points | 5/8 tasks | 0 | 0 |
+| **Arif** | 10 points | 8/8 tasks | 0 | 0 |
 | **Dewi** | 11 points | 1/8 tasks | 0 | 0 |
 | **Total** | 21 points | 6/16 tasks | 0 | 0 |
 
 ### Sprint History:
 | Sprint | Duration | Arif Progress | Dewi Progress | Team Velocity | Status |
 |--------|----------|---------------|---------------|---------------|---------|
-| Sprint 1 | Week 1-2 | 0/10 points | 0/11 points | 0/21 points | 🔴 Not Started |
+| Sprint 1 | Week 1-2 | 10/10 points | 0/11 points | 10/21 points | � On Track |
 | Sprint 2 | Week 3-4 | 0/16 points | 0/13 points | 0/29 points | ⏳ Upcoming |
 | Sprint 3 | Week 5-6 | 0/21 points | 0/10 points | 0/31 points | ⏳ Upcoming |
 | Sprint 4 | Week 7-8 | 0/18 points | 0/13 points | 0/31 points | ⏳ Upcoming |

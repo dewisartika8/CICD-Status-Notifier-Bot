@@ -24,6 +24,11 @@ func (ts Timestamp) Value() time.Time {
 	return ts.value
 }
 
+// ToTime returns the underlying time (alias for Value)
+func (ts Timestamp) ToTime() time.Time {
+	return ts.value
+}
+
 // String returns string representation
 func (ts Timestamp) String() string {
 	return ts.value.String()

@@ -3,8 +3,11 @@ package testutils
 import (
 	"testing"
 
-	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapters/database"
-	"github.com/dewisartika8/cicd-status-notifier-bot/internal/domain/entities"
+	builddomain "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/build/domain"
+	notificationdomain "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/notification/domain"
+	projectdomain "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/project/domain"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/shared/domain/value_objects"
+	"github.com/dewisartika8/cicd-status-notifier-bot/pkg/database"
 	"github.com/google/uuid"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -48,21 +51,42 @@ func TeardownTestDB(t *testing.T, db *gorm.DB) {
 }
 
 // CreateTestProject creates a test project entity
-func CreateTestProject(name, repoURL string) *entities.Project {
-	return entities.NewProject(name, repoURL, "test-secret")
+func CreateTestProject(name, repoURL string) *projectdomain.Project {
+	project, _ := projectdomain.NewProject(name, repoURL, "test-secret", nil)
+	return project
 }
 
 // CreateTestBuildEvent creates a test build event entity
-func CreateTestBuildEvent(projectID uuid.UUID, eventType entities.EventType, status entities.BuildStatus, branch string) *entities.BuildEvent {
-	return entities.NewBuildEvent(projectID, eventType, status, branch)
+func CreateTestBuildEvent(projectID uuid.UUID, eventType builddomain.EventType, status builddomain.BuildStatus, branch string) *builddomain.BuildEvent {
+	params := builddomain.BuildEventParams{
+		ProjectID: value_objects.NewIDFromUUID(projectID),
+		EventType: eventType,
+		Status:    status,
+		Branch:    branch,
+	}
+	event, _ := builddomain.NewBuildEvent(params)
+	return event
 }
 
 // CreateTestTelegramSubscription creates a test telegram subscription entity
-func CreateTestTelegramSubscription(projectID uuid.UUID, chatID int64) *entities.TelegramSubscription {
-	return entities.NewTelegramSubscription(projectID, chatID, nil, "test_user")
+func CreateTestTelegramSubscription(projectID uuid.UUID, chatID int64) *notificationdomain.TelegramSubscription {
+	sub, _ := notificationdomain.NewTelegramSubscription(value_objects.NewIDFromUUID(projectID), chatID)
+	return sub
 }
 
 // CreateTestNotificationLog creates a test notification log entity
-func CreateTestNotificationLog(buildEventID uuid.UUID, chatID int64) *entities.NotificationLog {
-	return entities.NewNotificationLog(buildEventID, chatID)
+func CreateTestNotificationLog(buildEventID uuid.UUID, chatID int64) *notificationdomain.NotificationLog {
+	// For test, use dummy projectID, channel, recipient, and message
+	projectID := value_objects.NewID()
+	channel := notificationdomain.NotificationChannelTelegram
+	recipient := "test_user"
+	message := "test message"
+	log, _ := notificationdomain.NewNotificationLog(
+		value_objects.NewIDFromUUID(buildEventID),
+		projectID,
+		channel,
+		recipient,
+		message,
+	)
+	return log
 }

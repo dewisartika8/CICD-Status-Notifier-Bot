@@ -18,7 +18,7 @@ DOCKER_TAG=latest
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
-DB_PASSWORD=password
+DB_PASSWORD=jQlwjVKoQw
 DB_NAME=cicd_notifier
 DB_URL=postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
 
@@ -81,43 +81,66 @@ install-air:
 	@echo "Installing air..."
 	$(GOGET) -u github.com/cosmtrek/air
 
-## Run database migrations up
-migrate-up:
-	@echo "Running database migrations up..."
-	migrate -path scripts/migrations -database "$(DB_URL)" up
-
-## Run database migrations down
-migrate-down:
-	@echo "Running database migrations down..."
-	migrate -path scripts/migrations -database "$(DB_URL)" down
-
-## Install migrate tool
+## Install migrate tool (cross-platform)
 install-migrate:
 	@echo "Installing migrate tool..."
-	@curl -L https://github.com/golang-migrate/migrate/releases/latest/download/migrate.linux-amd64.tar.gz | tar xvz
-	@sudo mv migrate /usr/local/bin/
+	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
-## Setup development database with Docker
+## Run database migrations up (with better error handling)
+migrate-up:
+	@echo "Running database migrations up..."
+	@MIGRATE_BIN=$$(go env GOPATH)/bin/migrate; \
+	if [ ! -f "$$MIGRATE_BIN" ]; then \
+		echo "migrate tool not found. Installing..."; \
+		$(MAKE) install-migrate; \
+	fi; \
+	$$MIGRATE_BIN -path scripts/migrations -database "$(DB_URL)" up
+
+## Run database migrations down (with better error handling)
+migrate-down:
+	@echo "Running database migrations down..."
+	@MIGRATE_BIN=$$(go env GOPATH)/bin/migrate; \
+	if [ ! -f "$$MIGRATE_BIN" ]; then \
+		echo "migrate tool not found. Installing..."; \
+		$(MAKE) install-migrate; \
+	fi; \
+	$$MIGRATE_BIN -path scripts/migrations -database "$(DB_URL)" down
+
+## Force migrate down all migrations
+migrate-force-down:
+	@echo "Force running all migrations down..."
+	@MIGRATE_BIN=$$(go env GOPATH)/bin/migrate; \
+	if [ ! -f "$$MIGRATE_BIN" ]; then \
+		echo "migrate tool not found. Installing..."; \
+		$(MAKE) install-migrate; \
+	fi; \
+	$$MIGRATE_BIN -path scripts/migrations -database "$(DB_URL)" down -all
+
+## Reset database (drop and recreate)
+db-reset:
+	@echo "Resetting database..."
+	@psql -U $(DB_USER) -h $(DB_HOST) -p $(DB_PORT) -c "DROP DATABASE IF EXISTS $(DB_NAME);" || true
+	@psql -U $(DB_USER) -h $(DB_HOST) -p $(DB_PORT) -c "CREATE DATABASE $(DB_NAME);"
+	@echo "Database $(DB_NAME) has been reset"
+
+## Setup database (create database if not exists)
 db-setup:
-	@echo "Setting up development database..."
-	docker run --name postgres-dev \
-		-e POSTGRES_USER=$(DB_USER) \
-		-e POSTGRES_PASSWORD=$(DB_PASSWORD) \
-		-e POSTGRES_DB=$(DB_NAME) \
-		-p $(DB_PORT):5432 \
-		-d postgres:15-alpine
+	@echo "Setting up database..."
+	@psql -U $(DB_USER) -h $(DB_HOST) -p $(DB_PORT) -c "CREATE DATABASE $(DB_NAME);" || echo "Database $(DB_NAME) already exists"
 
-## Stop development database
-db-stop:
-	@echo "Stopping development database..."
-	docker stop postgres-dev || true
-	docker rm postgres-dev || true
+## Complete database reset and migrate
+db-fresh: db-reset migrate-up
+	@echo "Database fresh migration completed!"
 
-## Reset development database
-db-reset: db-stop db-setup
-	@echo "Waiting for database to be ready..."
-	@sleep 5
-	@$(MAKE) migrate-up
+## Check migration status
+migrate-status:
+	@echo "Checking migration status..."
+	@MIGRATE_BIN=$$(go env GOPATH)/bin/migrate; \
+	if [ ! -f "$$MIGRATE_BIN" ]; then \
+		echo "migrate tool not found. Installing..."; \
+		$(MAKE) install-migrate; \
+	fi; \
+	$$MIGRATE_BIN -path scripts/migrations -database "$(DB_URL)" version
 
 ## Build Docker image
 docker-build:
@@ -151,6 +174,11 @@ compose-down:
 ## Development environment setup
 setup-dev: deps install-air install-migrate db-setup
 	@echo "Development environment setup complete!"
+	@echo "Run 'make dev' to start the application"
+
+## Setup environment with database fresh migration
+setup-fresh: deps install-air install-migrate db-fresh
+	@echo "Fresh development environment setup complete!"
 	@echo "Run 'make dev' to start the application"
 
 ## Lint the code

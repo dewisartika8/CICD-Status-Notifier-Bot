@@ -11,11 +11,11 @@
 
 | Sprint | Total Tasks | Story Points | Completed | In Progress | Not Started | Progress |
 |--------|-------------|--------------|-----------|-------------|-------------|----------|
-| Sprint 1 | 10 tasks | 10 points | ✅ 5 | ⬜ 0 | ⬜ 5 | 50% |
+| Sprint 1 | 8 tasks | 10 points | ✅ 5 | ⬜ 0 | ⬜ 3 | 63% |
 | Sprint 2 | 12 tasks | 16 points | ⬜ 0 | ⬜ 0 | ⬜ 12 | 0% |
 | Sprint 3 | 8 tasks | 21 points | ⬜ 0 | ⬜ 0 | ⬜ 8 | 0% |
 | Sprint 4 | 12 tasks | 28 points | ⬜ 0 | ⬜ 0 | ⬜ 12 | 0% |
-| **Total** | **42 tasks** | **75 points** | **5** | **0** | **37** | **12%** |
+| **Total** | **40 tasks** | **75 points** | **5** | **0** | **35** | **13%** |
 
 ---
 
@@ -81,8 +81,8 @@
   - **Estimated:** 8 hours | **Status:** Not Started
 
 ### 📋 Sprint 1 Deliverables for Arif:
-- [ ] Complete database schema with migrations
-- [ ] Working project repository layer with tests
+- [x] Complete database schema with migrations
+- [x] Working project repository layer with tests
 - [ ] Project CRUD API endpoints
 - [ ] Service layer with business logic
 - [ ] 80%+ test coverage for assigned components

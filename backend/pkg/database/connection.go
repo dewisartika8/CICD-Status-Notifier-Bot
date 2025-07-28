@@ -2,8 +2,12 @@ package database
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
+	builddomain "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/build/domain"
+	notificationdomain "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/notification/domain"
+	projectdomain "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/project/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -63,10 +67,10 @@ func ConnectSQLite(path string) (*gorm.DB, error) {
 // AutoMigrate runs database migrations
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(
-		&ProjectModel{},
-		&BuildEventModel{},
-		&TelegramSubscriptionModel{},
-		&NotificationLogModel{},
+		&projectdomain.ProjectModel{},
+		&builddomain.BuildEventModel{},
+		&notificationdomain.TelegramSubscriptionModel{},
+		&notificationdomain.NotificationLogModel{},
 	)
 }
 
@@ -92,5 +96,5 @@ func isConstraintAlreadyExistsError(err error) bool {
 		return false
 	}
 	errStr := err.Error()
-	return contains(errStr, "already exists") || contains(errStr, "constraint")
+	return strings.Contains(errStr, "already exists") || strings.Contains(errStr, "constraint")
 }

@@ -28,6 +28,11 @@ func NewIDFromUUID(id uuid.UUID) ID {
 	return ID{value: id}
 }
 
+// NewIDFromUUIDWithError creates an ID from existing UUID with error return for consistency
+func NewIDFromUUIDWithError(id uuid.UUID) (ID, error) {
+	return ID{value: id}, nil
+}
+
 // Value returns the underlying UUID
 func (id ID) Value() uuid.UUID {
 	return id.value

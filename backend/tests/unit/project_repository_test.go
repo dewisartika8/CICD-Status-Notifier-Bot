@@ -1,39 +1,44 @@
-package database_test
+package repository_test
 
 import (
 	"context"
 	"testing"
 
-	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapters/database"
-	"github.com/dewisartika8/cicd-status-notifier-bot/internal/domain/entities"
-	"github.com/dewisartika8/cicd-status-notifier-bot/internal/domain/ports"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/repository"
+	projectdomain "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/project/domain"
+	projectdto "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/project/dto"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/shared/domain/value_objects"
 	"github.com/dewisartika8/cicd-status-notifier-bot/tests/testutils"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestProjectRepository_Create(t *testing.T) {
+const (
+	testProjectName = "test-project"
+	testRepoURL     = "https://github.com/user/repo"
+)
+
+func TestProjectRepositoryCreate(t *testing.T) {
 	db := testutils.SetupTestDB(t)
 	defer testutils.TeardownTestDB(t, db)
 
-	repo := database.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db)
 	ctx := context.Background()
 
 	tests := []struct {
 		name          string
-		project       *entities.Project
+		project       *projectdomain.Project
 		expectedError error
 	}{
 		{
 			name:          "should create project successfully",
-			project:       testutils.CreateTestProject("test-project", "https://github.com/user/repo"),
+			project:       testutils.CreateTestProject(testProjectName, testRepoURL),
 			expectedError: nil,
 		},
 		{
 			name:          "should fail with duplicate name",
-			project:       testutils.CreateTestProject("test-project", "https://github.com/user/another-repo"), // Same name as above
-			expectedError: ports.ErrProjectAlreadyExists,
+			project:       testutils.CreateTestProject(testProjectName, "https://github.com/user/another-repo"), // Same name as above
+			expectedError: projectdomain.ErrProjectAlreadyExists,
 		},
 	}
 
@@ -46,40 +51,40 @@ func TestProjectRepository_Create(t *testing.T) {
 				assert.Equal(t, tt.expectedError, err)
 			} else {
 				require.NoError(t, err)
-				assert.NotEqual(t, uuid.Nil, tt.project.ID)
-				assert.NotZero(t, tt.project.CreatedAt)
-				assert.NotZero(t, tt.project.UpdatedAt)
+				assert.False(t, tt.project.ID().IsNil())
+				assert.False(t, tt.project.CreatedAt().IsZero())
+				assert.False(t, tt.project.UpdatedAt().IsZero())
 			}
 		})
 	}
 }
 
-func TestProjectRepository_GetByID(t *testing.T) {
+func TestProjectRepositoryGetByID(t *testing.T) {
 	db := testutils.SetupTestDB(t)
 	defer testutils.TeardownTestDB(t, db)
 
-	repo := database.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db)
 	ctx := context.Background()
 
 	// Create test project
-	project := testutils.CreateTestProject("test-project", "https://github.com/user/repo")
+	project := testutils.CreateTestProject(testProjectName, testRepoURL)
 	err := repo.Create(ctx, project)
 	require.NoError(t, err)
 
 	tests := []struct {
 		name          string
-		projectID     uuid.UUID
+		projectID     value_objects.ID
 		expectedError error
 	}{
 		{
 			name:          "should get project by ID",
-			projectID:     project.ID,
+			projectID:     project.ID(),
 			expectedError: nil,
 		},
 		{
 			name:          "should return error for non-existent project",
-			projectID:     uuid.New(),
-			expectedError: ports.ErrProjectNotFound,
+			projectID:     value_objects.NewID(),
+			expectedError: projectdomain.ErrProjectNotFound,
 		},
 	}
 
@@ -94,24 +99,24 @@ func TestProjectRepository_GetByID(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, foundProject)
-				assert.Equal(t, project.ID, foundProject.ID)
-				assert.Equal(t, project.Name, foundProject.Name)
-				assert.Equal(t, project.RepositoryURL, foundProject.RepositoryURL)
-				assert.Equal(t, project.IsActive, foundProject.IsActive)
+				assert.Equal(t, project.ID(), foundProject.ID())
+				assert.Equal(t, project.Name(), foundProject.Name())
+				assert.Equal(t, project.RepositoryURL(), foundProject.RepositoryURL())
+				assert.Equal(t, project.IsActive(), foundProject.IsActive())
 			}
 		})
 	}
 }
 
-func TestProjectRepository_GetByName(t *testing.T) {
+func TestProjectRepositoryGetByName(t *testing.T) {
 	db := testutils.SetupTestDB(t)
 	defer testutils.TeardownTestDB(t, db)
 
-	repo := database.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db)
 	ctx := context.Background()
 
 	// Create test project
-	project := testutils.CreateTestProject("unique-project-name", "https://github.com/user/repo")
+	project := testutils.CreateTestProject("unique-project-name", testRepoURL)
 	err := repo.Create(ctx, project)
 	require.NoError(t, err)
 
@@ -128,7 +133,7 @@ func TestProjectRepository_GetByName(t *testing.T) {
 		{
 			name:          "should return error for non-existent project",
 			projectName:   "non-existent-project",
-			expectedError: ports.ErrProjectNotFound,
+			expectedError: projectdomain.ErrProjectNotFound,
 		},
 	}
 
@@ -143,18 +148,18 @@ func TestProjectRepository_GetByName(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, foundProject)
-				assert.Equal(t, project.ID, foundProject.ID)
-				assert.Equal(t, project.Name, foundProject.Name)
+				assert.Equal(t, project.ID(), foundProject.ID())
+				assert.Equal(t, project.Name(), foundProject.Name())
 			}
 		})
 	}
 }
 
-func TestProjectRepository_List(t *testing.T) {
+func TestProjectRepositoryList(t *testing.T) {
 	db := testutils.SetupTestDB(t)
 	defer testutils.TeardownTestDB(t, db)
 
-	repo := database.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db)
 	ctx := context.Background()
 
 	// Create multiple test projects
@@ -166,76 +171,81 @@ func TestProjectRepository_List(t *testing.T) {
 	err = repo.Create(ctx, project2)
 	require.NoError(t, err)
 
-	projects, err := repo.List(ctx)
+	projects, err := repo.List(ctx, projectdto.ListProjectFilters{})
 
 	require.NoError(t, err)
 	assert.Len(t, projects, 2)
 
 	// Check if both projects are in the list
-	projectIDs := make(map[uuid.UUID]bool)
+	projectIDs := make(map[string]bool)
 	for _, p := range projects {
-		projectIDs[p.ID] = true
+		projectIDs[p.ID().String()] = true
 	}
 
-	assert.True(t, projectIDs[project1.ID])
-	assert.True(t, projectIDs[project2.ID])
+	assert.True(t, projectIDs[project1.ID().String()])
+	assert.True(t, projectIDs[project2.ID().String()])
 }
 
-func TestProjectRepository_Update(t *testing.T) {
+func TestProjectRepositoryUpdate(t *testing.T) {
 	db := testutils.SetupTestDB(t)
 	defer testutils.TeardownTestDB(t, db)
 
-	repo := database.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db)
 	ctx := context.Background()
 
 	// Create test project
-	project := testutils.CreateTestProject("original-name", "https://github.com/user/repo")
+	project := testutils.CreateTestProject("original-name", testRepoURL)
 	err := repo.Create(ctx, project)
 	require.NoError(t, err)
 
 	// Update project
 	telegramChatID := int64(123456789)
-	err = project.Update("updated-name", "https://github.com/updated/repo", &telegramChatID, false)
+	err = project.UpdateName("updated-name")
 	require.NoError(t, err)
+	err = project.UpdateRepositoryURL("https://github.com/updated/repo")
+	require.NoError(t, err)
+	err = project.UpdateTelegramChatID(&telegramChatID)
+	require.NoError(t, err)
+	project.Deactivate()
 
 	err = repo.Update(ctx, project)
 	require.NoError(t, err)
 
 	// Verify update
-	updatedProject, err := repo.GetByID(ctx, project.ID)
+	updatedProject, err := repo.GetByID(ctx, project.ID())
 	require.NoError(t, err)
-	assert.Equal(t, "updated-name", updatedProject.Name)
-	assert.Equal(t, "https://github.com/updated/repo", updatedProject.RepositoryURL)
-	assert.False(t, updatedProject.IsActive)
-	assert.Equal(t, &telegramChatID, updatedProject.TelegramChatID)
+	assert.Equal(t, "updated-name", updatedProject.Name())
+	assert.Equal(t, "https://github.com/updated/repo", updatedProject.RepositoryURL())
+	assert.False(t, updatedProject.IsActive())
+	assert.Equal(t, &telegramChatID, updatedProject.TelegramChatID())
 }
 
-func TestProjectRepository_Delete(t *testing.T) {
+func TestProjectRepositoryDelete(t *testing.T) {
 	db := testutils.SetupTestDB(t)
 	defer testutils.TeardownTestDB(t, db)
 
-	repo := database.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db)
 	ctx := context.Background()
 
 	// Create test project
-	project := testutils.CreateTestProject("to-be-deleted", "https://github.com/user/repo")
+	project := testutils.CreateTestProject("to-be-deleted", testRepoURL)
 	err := repo.Create(ctx, project)
 	require.NoError(t, err)
 
 	tests := []struct {
 		name          string
-		projectID     uuid.UUID
+		projectID     value_objects.ID
 		expectedError error
 	}{
 		{
 			name:          "should delete existing project",
-			projectID:     project.ID,
+			projectID:     project.ID(),
 			expectedError: nil,
 		},
 		{
 			name:          "should return error for non-existent project",
-			projectID:     uuid.New(),
-			expectedError: ports.ErrProjectNotFound,
+			projectID:     value_objects.NewID(),
+			expectedError: projectdomain.ErrProjectNotFound,
 		},
 	}
 
@@ -251,41 +261,37 @@ func TestProjectRepository_Delete(t *testing.T) {
 
 				// Verify project is deleted
 				_, err := repo.GetByID(ctx, tt.projectID)
-				assert.Equal(t, ports.ErrProjectNotFound, err)
+				assert.Equal(t, projectdomain.ErrProjectNotFound, err)
 			}
 		})
 	}
 }
 
-func TestProjectRepository_GetWithBuildEvents(t *testing.T) {
+func TestProjectRepositoryGetActiveProjects(t *testing.T) {
 	db := testutils.SetupTestDB(t)
 	defer testutils.TeardownTestDB(t, db)
 
-	projectRepo := database.NewProjectRepository(db)
-	buildEventRepo := database.NewBuildEventRepository(db)
+	repo := repository.NewProjectRepository(db)
 	ctx := context.Background()
 
-	// Create test project
-	project := testutils.CreateTestProject("project-with-builds", "https://github.com/user/repo")
-	err := projectRepo.Create(ctx, project)
+	// Create test projects
+	project1 := testutils.CreateTestProject("active-project", "https://github.com/user/repo1")
+	project2 := testutils.CreateTestProject("inactive-project", testRepoURL)
+
+	err := repo.Create(ctx, project1)
+	require.NoError(t, err)
+	err = repo.Create(ctx, project2)
 	require.NoError(t, err)
 
-	// Create test build events
-	buildEvent1 := testutils.CreateTestBuildEvent(project.ID, entities.EventTypeBuildSuccess, entities.BuildStatusSuccess, "main")
-	buildEvent2 := testutils.CreateTestBuildEvent(project.ID, entities.EventTypeBuildFailed, entities.BuildStatusFailed, "develop")
-
-	err = buildEventRepo.Create(ctx, buildEvent1)
-	require.NoError(t, err)
-	err = buildEventRepo.Create(ctx, buildEvent2)
+	// Deactivate second project
+	project2.Deactivate()
+	err = repo.Update(ctx, project2)
 	require.NoError(t, err)
 
-	// Test getting project with build events
-	projectWithEvents, buildEvents, err := projectRepo.GetWithBuildEvents(ctx, project.ID, 10)
+	// Test getting active projects
+	activeProjects, err := repo.GetActiveProjects(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, project.ID, projectWithEvents.ID)
-	assert.Len(t, buildEvents, 2)
-
-	// Test with non-existent project
-	_, _, err = projectRepo.GetWithBuildEvents(ctx, uuid.New(), 10)
-	assert.Equal(t, ports.ErrProjectNotFound, err)
+	assert.Len(t, activeProjects, 1)
+	assert.Equal(t, project1.ID(), activeProjects[0].ID())
+	assert.True(t, activeProjects[0].IsActive())
 }

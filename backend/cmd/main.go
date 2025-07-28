@@ -1,22 +1,17 @@
 package main
 
 import (
-	"context"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/health"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/repository"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/config"
-	"github.com/dewisartika8/cicd-status-notifier-bot/internal/repositories"
-	"github.com/dewisartika8/cicd-status-notifier-bot/internal/services"
+	bs "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/build/service"
+	ps "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/project/service"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/server/app"
 	"github.com/dewisartika8/cicd-status-notifier-bot/pkg/database"
 	"github.com/dewisartika8/cicd-status-notifier-bot/pkg/logger"
-
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
 func main() {
@@ -51,68 +46,26 @@ func main() {
 	logger.Info("Database connected successfully")
 
 	// Initialize repositories
-	projectRepo := repositories.NewProjectRepository(db)
-	buildEventRepo := repositories.NewBuildEventRepository(db)
+	projectRepo := repository.NewProjectRepository(db)
+	buildEventRepo := repository.NewBuildEventRepository(db)
 
 	// Initialize services
-	_ = services.NewProjectService(projectRepo)
-	_ = services.NewBuildEventService(buildEventRepo)
-
-	// Create Fiber app
-	app := fiber.New(fiber.Config{
-		AppName: "CI/CD Status Notifier Bot",
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			logger.Errorf("Request error: %v", err)
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Internal Server Error",
-			})
-		},
+	_ = ps.NewProjectService(ps.Dep{
+		ProjectRepo: projectRepo,
+	})
+	_ = bs.NewBuildEventService(bs.Dep{
+		BuildEventRepo: buildEventRepo,
 	})
 
-	// Middleware
-	app.Use(recover.New())
-	app.Use(cors.New())
+	// Initialize handlers
+	healthHandler := health.NewHealthHandler(logger)
 
-	// Routes
-	app.Get("/", func(c *fiber.Ctx) error {
-		logger.Info("Health check request received")
-		return c.JSON(fiber.Map{
-			"message": "CI/CD Status Notifier Bot is running 🚀",
-			"status":  "healthy",
-			"version": "1.0.0",
-		})
+	// run APP in http server
+	// inject all usecases here
+	appService := app.Init(app.Dep{
+		AppConfig:     cfg,
+		HealthHandler: healthHandler,
+		Logger:        logger,
 	})
-
-	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"status":    "healthy",
-			"database":  "connected",
-			"timestamp": time.Now().UTC(),
-		})
-	})
-
-	// Graceful shutdown
-	go func() {
-		if err := app.Listen(":" + cfg.ServerPort); err != nil {
-			logger.Fatalf("Server failed to start: %v", err)
-		}
-	}()
-
-	logger.Infof("Server started on port %s", cfg.ServerPort)
-
-	// Wait for interrupt signal to gracefully shutdown the server
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	logger.Info("Shutting down server...")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	if err := app.ShutdownWithContext(ctx); err != nil {
-		logger.Fatalf("Server forced to shutdown: %v", err)
-	}
-
-	logger.Info("Server exited")
+	appService.Run() // start http server
 }
