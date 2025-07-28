@@ -15,7 +15,7 @@
 - [ ] **Integration:** ________________________________
 
 #### 👩‍💻 Dewi's Today Tasks:
-- [ ] **Primary:** ________________________________
+- [x] **Primary:** Initialize Go module & Fiber framework (Task 1.1.1) ✅
 - [ ] **Secondary:** ________________________________
 - [ ] **Integration:** ________________________________
 

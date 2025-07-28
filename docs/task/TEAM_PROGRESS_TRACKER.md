@@ -28,7 +28,7 @@
 | Developer | Story Points | Tasks Complete | In Progress | Blocked |
 |-----------|-------------|----------------|-------------|---------|
 | **Arif** | 10 points | 0/8 tasks | 0 | 0 |
-| **Dewi** | 11 points | 0/8 tasks | 0 | 0 |
+| **Dewi** | 11 points | 1/8 tasks | 0 | 0 |
 | **Total** | 21 points | 0/16 tasks | 0 | 0 |
 
 ### Sprint History:
@@ -69,7 +69,7 @@
 | Webhook endpoints | 1.3 | 4h | ⬜ Not Started | |
 | Signature verification | 1.3 | 6h | ⬜ Not Started | Priority: High |
 
-**Dewi's Sprint 1 Progress: 0/8 tasks (0%)**
+**Dewi's Sprint 1 Progress: 1/8 tasks (12.5%)**
 
 ---
 
