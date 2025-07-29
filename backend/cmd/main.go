@@ -7,12 +7,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
+	"time"
 
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/health"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/repository"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/config"
-	"github.com/dewisartika8/cicd-status-notifier-bot/internal/logger"
-
-	"github.com/gofiber/fiber/v2"
+	bs "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/build/service"
+	ps "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/project/service"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/server/app"
+	"github.com/dewisartika8/cicd-status-notifier-bot/pkg/database"
+	"github.com/dewisartika8/cicd-status-notifier-bot/pkg/logger"
 )
 
 func verifyGitHubSignature(secret, signature string, body []byte) bool {
@@ -58,14 +62,17 @@ func processGitHubEvent(eventType string, payload GitHubActionsPayload) error {
 }
 
 func main() {
+	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Config error: %v", err)
 	}
 
-	log := logger.NewLogger()
-	log.Info("Starting CI/CD Status Notifier Bot...")
+	// Initialize logger
+	logger := logger.NewLogger()
+	logger.Info("Starting CI/CD Status Notifier Bot...")
 
+<<<<<<< HEAD
 	app := fiber.New()
 
 	// Middleware untuk logging request
@@ -117,7 +124,49 @@ func main() {
 			"payload":   payload,
 		})
 		return c.SendStatus(fiber.StatusAccepted)
+=======
+	// Connect to database
+	dbConfig := database.Config{
+		Host:         cfg.Database.Host,
+		Port:         cfg.Database.Port,
+		User:         cfg.Database.User,
+		Password:     cfg.Database.Password,
+		DBName:       cfg.Database.DBName,
+		SSLMode:      cfg.Database.SSLMode,
+		MaxOpenConns: cfg.Database.MaxOpenConns,
+		MaxIdleConns: cfg.Database.MaxIdleConns,
+		MaxLifetime:  time.Duration(cfg.Database.MaxLifetime) * time.Second,
+	}
+
+	db, err := database.Connect(dbConfig)
+	if err != nil {
+		logger.Fatalf("Database connection error: %v", err)
+	}
+
+	logger.Info("Database connected successfully")
+
+	// Initialize repositories
+	projectRepo := repository.NewProjectRepository(db)
+	buildEventRepo := repository.NewBuildEventRepository(db)
+
+	// Initialize services
+	_ = ps.NewProjectService(ps.Dep{
+		ProjectRepo: projectRepo,
+	})
+	_ = bs.NewBuildEventService(bs.Dep{
+		BuildEventRepo: buildEventRepo,
+>>>>>>> feature/1.2
 	})
 
-	log.Fatal(app.Listen(":" + cfg.ServerPort))
+	// Initialize handlers
+	healthHandler := health.NewHealthHandler(logger)
+
+	// run APP in http server
+	// inject all usecases here
+	appService := app.Init(app.Dep{
+		AppConfig:     cfg,
+		HealthHandler: healthHandler,
+		Logger:        logger,
+	})
+	appService.Run() // start http server
 }

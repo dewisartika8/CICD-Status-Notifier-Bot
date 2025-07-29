@@ -1,0 +1,45 @@
+package app
+
+import (
+	h "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/health"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/config"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/server/middleware"
+	"github.com/gofiber/fiber/v2"
+	"github.com/sirupsen/logrus"
+)
+
+type Dep struct {
+	AppConfig     *config.AppConfig
+	HealthHandler *h.HealthHandler
+	Logger        *logrus.Logger
+}
+
+type service struct {
+	Dep
+	HTTPServer *fiber.App
+}
+
+func Init(d Dep) *service {
+	// Create Fiber app
+	return &service{
+		HTTPServer: fiber.New(fiber.Config{
+			AppName: "CI/CD Status Notifier Bot",
+			ErrorHandler: func(c *fiber.Ctx, err error) error {
+				d.Logger.Errorf("Request error: %v", err)
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"error": "Internal Server Error",
+				})
+			},
+		}),
+	}
+}
+
+func (s *service) Run() {
+	// Middlewares.
+	middleware.FiberMiddleware(s.HTTPServer) // Register Fiber's middleware for app.
+
+	s.createRoutes()
+
+	// Start the server
+	s.startServerWithGracefulShutdown()
+}

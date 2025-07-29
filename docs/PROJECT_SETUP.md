@@ -13,28 +13,44 @@ CICD-Status-Notifier-Bot/
 │   └── USER_GUIDE.md             # User Setup Guide
 ├── backend/                       # Go backend application
 │   ├── cmd/
-│   │   └── server/
-│   │       └── main.go           # Application entry point
+│   │   └── main.go               # Application entry point
 │   ├── internal/
 │   │   ├── config/               # Configuration management
-│   │   ├── models/               # Database models
-│   │   ├── repositories/         # Data access layer
-│   │   ├── services/             # Business logic layer
-│   │   ├── handlers/             # HTTP handlers
-│   │   ├── middleware/           # HTTP middleware
-│   │   └── utils/                # Utility functions
+│   │   ├── core/                 # Domain layer (Clean Architecture)
+│   │   │   ├── build/            # Build domain module
+│   │   │   │   ├── domain/       # Business entities and domain logic
+│   │   │   │   ├── port/         # Repository and service interfaces
+│   │   │   │   ├── dto/          # Data Transfer Objects
+│   │   │   │   └── service/      # Business logic implementation
+│   │   │   ├── project/          # Project domain module
+│   │   │   │   ├── domain/       # Business entities and domain logic
+│   │   │   │   ├── port/         # Repository and service interfaces
+│   │   │   │   ├── dto/          # Data Transfer Objects
+│   │   │   │   └── service/      # Business logic implementation
+│   │   │   ├── notification/     # Notification domain module (similar structure)
+│   │   │   ├── webhook/          # Webhook domain module (similar structure)
+│   │   │   └── shared/           # Shared domain components
+│   │   │       ├── domain/
+│   │   │       │   ├── value_objects/  # Common value objects (ID, Timestamp, etc)
+│   │   │       │   └── events/         # Domain events
+│   │   ├── adapter/              # External adapters
+│   │   │   ├── handler/          # HTTP handlers
+│   │   │   └── repository/       # Repository implementations
+│   │   └── middleware/           # HTTP middleware
 │   ├── pkg/                      # Shared packages
-│   │   ├── telegram/             # Telegram bot client
-│   │   ├── database/             # Database connection
-│   │   └── logger/               # Logging utilities
-│   ├── migrations/               # Database migrations
+│   │   ├── logger/               # Logging utilities
+│   │   ├── database/             # Database connection utilities
+│   │   └── exception/            # Common error definitions and domain errors
+│   ├── scripts/                  # Database migrations and build scripts
+│   │   └── migrations/           # Database migrations
 │   ├── tests/                    # Test files
 │   │   ├── unit/                 # Unit tests
 │   │   ├── integration/          # Integration tests
-│   │   └── fixtures/             # Test data
-│   ├── scripts/                  # Build and deployment scripts
+│   │   └── testutils/            # Test utilities and fixtures
 │   ├── go.mod                    # Go module file
 │   ├── go.sum                    # Go module checksums
+│   ├── Makefile                  # Build automation
+│   ├── README.md                 # Backend documentation
 │   ├── Dockerfile               # Docker configuration
 │   └── .env.example             # Environment variables template
 ├── frontend/                     # React dashboard
@@ -109,16 +125,15 @@ git clone https://github.com/your-org/CICD-Status-Notifier-Bot.git
 cd CICD-Status-Notifier-Bot
 
 # Copy environment files
-cp backend/.env.example backend/.env
+cp backend/internal/config/config.yaml.example backend/internal/config/config.yaml
 cp frontend/.env.example frontend/.env
 
-# Start development environment
-docker-compose -f docker-compose.dev.yml up -d
-
-# Setup backend
+# Setup backend with Makefile
 cd backend
-go mod download
-go run cmd/server/main.go migrate
+make setup-dev    # This will install dependencies, tools, and setup database
+
+# Start backend development server
+make dev          # or make watch for hot reloading
 
 # Setup frontend
 cd ../frontend
@@ -163,29 +178,57 @@ git push origin feature/webhook-integration
 
 #### Backend Testing
 ```go
-// Unit test example
-func TestWebhookService_ProcessGitHubWebhook(t *testing.T) {
-    // Arrange
-    mockBuildService := mocks.NewMockBuildService(ctrl)
-    mockTelegramService := mocks.NewMockTelegramService(ctrl)
-    service := NewWebhookService(mockBuildService, mockTelegramService)
+// Unit test example for domain entity
+func TestProject_UpdateName(t *testing.T) {
+    project, _ := domain.NewProject("test", "https://github.com/test/repo", "secret", nil)
     
-    // Act & Assert
-    err := service.ProcessGitHubWebhook(ctx, "project-id", payload)
+    err := project.UpdateName("new-name")
+    
     assert.NoError(t, err)
+    assert.Equal(t, "new-name", project.Name())
+}
+
+// Unit test example for service with mocked repository
+func TestProjectService_CreateProject(t *testing.T) {
+    // Arrange
+    mockRepo := mocks.NewMockProjectRepository(ctrl)
+    service := service.NewProjectService(mockRepo)
+    
+    req := dto.CreateProjectRequest{
+        Name:          "test-project",
+        RepositoryURL: "https://github.com/user/repo",
+        WebhookSecret: "secret123456",
+    }
+    
+    mockRepo.EXPECT().ExistsByName(gomock.Any(), req.Name).Return(false, nil)
+    mockRepo.EXPECT().ExistsByRepositoryURL(gomock.Any(), req.RepositoryURL).Return(false, nil)
+    mockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+    
+    // Act
+    project, err := service.CreateProject(context.Background(), req)
+    
+    // Assert
+    assert.NoError(t, err)
+    assert.NotNil(t, project)
+    assert.Equal(t, req.Name, project.Name())
 }
 
 // Integration test example
 func TestProjectRepository_Create(t *testing.T) {
-    db := setupTestDB(t)
-    repo := NewProjectRepository(db)
+    db := testutils.SetupTestDB(t)
+    repo := repositories.NewProjectRepository(db)
     
-    project := &Project{Name: "test-project"}
+    project, _ := domain.NewProject("test-project", "https://github.com/user/repo", "secret", nil)
     err := repo.Create(context.Background(), project)
     
     assert.NoError(t, err)
-    assert.NotEmpty(t, project.ID)
+    assert.NotEmpty(t, project.ID())
 }
+
+// Running tests with Makefile
+// make test           # Run all tests
+// make test-coverage  # Run tests with coverage
+// make coverage       # Generate HTML coverage report
 ```
 
 #### Frontend Testing
@@ -208,16 +251,215 @@ test('renders project card with status', () => {
 })
 ```
 
-### 6. Key Implementation Guidelines
+### 6. Domain Module Architecture Pattern
+
+#### Domain Module Structure
+Each domain module (like `build`, `project`, `notification`) follows a consistent structure:
+
+```
+domain_module/
+├── domain/          # Business entities, domain logic, and domain-specific errors
+│   ├── entity.go    # Domain entity with business logic methods
+│   └── errors.go    # Domain-specific error definitions
+├── port/            # Interfaces (ports in hexagonal architecture)
+│   ├── repository.go # Repository interface (data access)
+│   └── service.go   # Service interface (business logic)
+├── dto/             # Data Transfer Objects
+│   └── requests.go  # DTOs for API requests and responses
+└── service/         # Business logic implementation
+    └── service.go   # Service implementation
+```
+
+#### Domain Layer Guidelines
+
+**`/domain` - Business Entities & Domain Logic:**
+- Contains domain entities with encapsulated business logic
+- Domain-specific error definitions using DomainError pattern
+- No external dependencies (pure business logic)
+- Immutable state with controlled mutations through methods
+- Validation rules as part of domain entity
+
+Example entity structure:
+```go
+// domain/project.go
+type Project struct {
+    id         value_objects.ID
+    name       string
+    // ... other fields
+}
+
+func NewProject(name string) (*Project, error) {
+    // Factory method with validation
+}
+
+func (p *Project) UpdateName(name string) error {
+    // Business logic for name updates
+}
+```
+
+**`/port` - Interface Definitions:**
+- Repository interfaces for data persistence contracts
+- Service interfaces for business logic contracts
+- No implementation details, only contracts
+- Used for dependency injection and testing
+
+Example interface:
+```go
+// port/repository.go
+type ProjectRepository interface {
+    Create(ctx context.Context, project *domain.Project) error
+    GetByID(ctx context.Context, id value_objects.ID) (*domain.Project, error)
+    // ... other repository methods
+}
+```
+
+**`/dto` - Data Transfer Objects:**
+- Request/response structures for API layer
+- Validation tags for input validation
+- Conversion methods to/from domain entities
+- No business logic, only data structure
+
+Example DTO:
+```go
+// dto/project.go
+type CreateProjectRequest struct {
+    Name          string `json:"name" validate:"required,min=1,max=100"`
+    RepositoryURL string `json:"repository_url" validate:"required,url"`
+}
+
+func ToProjectResponse(project *domain.Project) *ProjectResponse {
+    // Conversion logic
+}
+```
+
+**`/service` - Business Logic Implementation:**
+- Implements service interfaces from `/port`
+- Orchestrates business operations
+- Handles domain entity lifecycle
+- Enforces business rules and validations
+
+Example service:
+```go
+// service/project_service.go
+type ProjectService struct {
+    repo port.ProjectRepository
+}
+
+func (s *ProjectService) CreateProject(ctx context.Context, req dto.CreateProjectRequest) (*domain.Project, error) {
+    // Business logic implementation
+}
+```
+
+#### Error Handling Pattern
+
+**Domain-Specific Errors** (in `/domain/errors.go`):
+```go
+var (
+    ErrProjectNotFound = exception.NewDomainError(
+        "PROJECT_NOT_FOUND",
+        "project not found",
+    )
+)
+```
+
+**Generic Errors** (in `/pkg/exception`):
+```go
+// Common errors that can be reused across modules
+var (
+    ErrValidationFailed = NewDomainError("VALIDATION_ERROR", "validation failed")
+    ErrNotFound         = NewDomainError("NOT_FOUND", "resource not found")
+)
+```
+
+#### Implementation Benefits
+
+1. **Consistency**: All domain modules follow the same pattern
+2. **Testability**: Clear interfaces enable easy mocking
+3. **Maintainability**: Separation of concerns makes code easier to maintain
+4. **Scalability**: Easy to add new domain modules
+5. **Clean Architecture**: Dependencies point inward (towards domain)
+
+### 7. Key Implementation Guidelines
 
 #### Go Backend Best Practices
-- Use dependency injection for testability
-- Implement repository pattern for data access
-- Use context for request tracing
+
+**Domain Module Organization:**
+- Follow consistent domain module pattern: `/domain`, `/port`, `/dto`, `/service`
+- Keep domain entities pure (no external dependencies)
+- Use repository pattern with dependency injection
+- Separate domain entities from database models
+- Implement domain-specific errors in `/domain/errors.go`
+- Use generic errors from `/pkg/exception` for common cases
+
+**Clean Architecture Implementation:**
+- Use Clean Architecture with domain-driven design
+- Dependencies point inward (towards domain layer)
+- Domain layer contains business logic, no infrastructure concerns
+- Ports (interfaces) define contracts between layers
+- Services orchestrate business operations
+- DTOs handle data transformation between layers
+
+**Error Handling:**
+- Use DomainError pattern for structured error handling
+- Define error codes as constants for API consistency
+- Separate domain-specific errors from generic errors
+- Implement error wrapping for context preservation
+
+**Repository Implementation Pattern:**
+```go
+// Implementation should be in /internal/adapter/repository/
+type projectRepository struct {
+    db *gorm.DB
+}
+
+func NewProjectRepository(db *gorm.DB) port.ProjectRepository {
+    return &projectRepository{db: db}
+}
+
+func (r *projectRepository) Create(ctx context.Context, project *domain.Project) error {
+    model := toProjectModel(project) // Convert domain to database model
+    if err := r.db.WithContext(ctx).Create(&model).Error; err != nil {
+        return exception.NewDomainErrorWithCause("DB_CREATE_FAILED", "failed to create project", err)
+    }
+    return nil
+}
+
+// Database model (separate from domain entity)
+type ProjectModel struct {
+    ID             string `gorm:"primaryKey"`
+    Name           string `gorm:"uniqueIndex;not null"`
+    RepositoryURL  string `gorm:"uniqueIndex;not null"`
+    WebhookSecret  string `gorm:"not null"`
+    TelegramChatID *int64
+    Status         string `gorm:"not null;default:'active'"`
+    CreatedAt      time.Time
+    UpdatedAt      time.Time
+}
+
+func toProjectModel(p *domain.Project) *ProjectModel {
+    return &ProjectModel{
+        ID:             p.ID().String(),
+        Name:           p.Name(),
+        RepositoryURL:  p.RepositoryURL(),
+        // ... conversion logic
+    }
+}
+```
+
+**Code Organization Guidelines:**
+- Use context for request tracing and cancellation
 - Handle errors explicitly (no silent failures)
-- Use structured logging
-- Validate all inputs
+- Use structured logging with appropriate levels
+- Validate all inputs at service layer
 - Use database transactions where needed
+- Keep business logic in service layer, not repositories
+- Use Makefile for consistent build and test commands
+
+**Value Objects and Entities:**
+- Use value objects for IDs, timestamps, and other domain concepts
+- Implement immutable entities with controlled mutation methods
+- Encapsulate business rules within domain entities
+- Use factory methods for entity creation with validation
 
 #### React Frontend Best Practices
 - Use TypeScript for type safety
@@ -236,7 +478,7 @@ test('renders project card with status', () => {
 - Use migrations for schema changes
 - Regular backup strategy
 
-### 7. Deployment Strategy
+### 8. Deployment Strategy
 
 #### Development Deployment
 ```yaml
@@ -286,7 +528,7 @@ services:
     restart: unless-stopped
 ```
 
-### 8. Monitoring & Observability
+### 9. Monitoring & Observability
 
 #### Logging Strategy
 ```go
@@ -330,7 +572,7 @@ func (h *HealthHandler) Check(c *fiber.Ctx) error {
 }
 ```
 
-### 9. Security Considerations
+### 10. Security Considerations
 
 #### Environment Variables
 ```bash
@@ -351,7 +593,7 @@ JWT_SECRET=your_jwt_secret
 - [ ] Regular dependency updates
 - [ ] Security headers configured
 
-### 10. Performance Optimization
+### 11. Performance Optimization
 
 #### Database Optimization
 - Add indexes on frequently queried columns
