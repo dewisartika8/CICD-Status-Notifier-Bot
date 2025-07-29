@@ -10,6 +10,38 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// Error messages
+const (
+	ErrorProjectIDRequired        = "project_id is required"
+	ErrorInvalidProjectIDFormat   = "invalid project_id format"
+	ErrorMissingSignatureHeader   = "missing X-Hub-Signature-256 header"
+	ErrorMissingEventTypeHeader   = "missing X-GitHub-Event header"
+	ErrorUnsupportedEventType     = "unsupported event type: "
+	ErrorEmptyRequestBody         = "empty request body"
+	ErrorInvalidJSONPayload       = "invalid JSON payload"
+	ErrorInvalidWebhookSignature  = "invalid webhook signature"
+	ErrorProjectNotFound          = "project not found"
+	ErrorInvalidWebhookPayload    = "invalid webhook payload"
+	ErrorInternalServerError      = "internal server error"
+	ErrorEventIDRequired          = "event_id is required"
+	ErrorInvalidEventIDFormat     = "invalid event_id format"
+	ErrorWebhookEventNotFound     = "webhook event not found"
+	ErrorFailedToGetWebhookEvents = "failed to get webhook events"
+)
+
+// Success messages
+const (
+	MessageWebhookProcessedSuccessfully = "webhook processed successfully"
+)
+
+// Log messages
+const (
+	LogFailedToProcessWebhook       = "Failed to process webhook"
+	LogWebhookProcessedSuccessfully = "Webhook processed successfully"
+	LogFailedToGetWebhookEvents     = "Failed to get webhook events"
+	LogFailedToGetWebhookEvent      = "Failed to get webhook event"
+)
+
 // RegisterRoutes registers webhook routes following the health handler pattern
 func (h *WebhookHandler) RegisterRoutes(r fiber.Router) {
 	// GitHub webhook endpoint
@@ -26,14 +58,14 @@ func (h *WebhookHandler) ProcessGitHubWebhook(c *fiber.Ctx) error {
 	projectIDStr := c.Params("projectId")
 	if projectIDStr == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "project_id is required",
+			"error": ErrorProjectIDRequired,
 		})
 	}
 
 	projectID, err := value_objects.NewIDFromString(projectIDStr)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid project_id format",
+			"error": ErrorInvalidProjectIDFormat,
 		})
 	}
 
@@ -41,7 +73,7 @@ func (h *WebhookHandler) ProcessGitHubWebhook(c *fiber.Ctx) error {
 	signature := c.Get("X-Hub-Signature-256")
 	if signature == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "missing X-Hub-Signature-256 header",
+			"error": ErrorMissingSignatureHeader,
 		})
 	}
 
@@ -49,7 +81,7 @@ func (h *WebhookHandler) ProcessGitHubWebhook(c *fiber.Ctx) error {
 	eventTypeStr := c.Get("X-GitHub-Event")
 	if eventTypeStr == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "missing X-GitHub-Event header",
+			"error": ErrorMissingEventTypeHeader,
 		})
 	}
 
@@ -57,7 +89,7 @@ func (h *WebhookHandler) ProcessGitHubWebhook(c *fiber.Ctx) error {
 	eventType := domain.WebhookEventType(eventTypeStr)
 	if !h.isValidEventType(eventType) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "unsupported event type: " + eventTypeStr,
+			"error": ErrorUnsupportedEventType + eventTypeStr,
 		})
 	}
 
@@ -68,7 +100,7 @@ func (h *WebhookHandler) ProcessGitHubWebhook(c *fiber.Ctx) error {
 	body := c.Body()
 	if len(body) == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "empty request body",
+			"error": ErrorEmptyRequestBody,
 		})
 	}
 
@@ -76,7 +108,7 @@ func (h *WebhookHandler) ProcessGitHubWebhook(c *fiber.Ctx) error {
 	var payload dto.GitHubActionsPayload
 	if err := json.Unmarshal(body, &payload); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid JSON payload",
+			"error": ErrorInvalidJSONPayload,
 		})
 	}
 
@@ -93,7 +125,7 @@ func (h *WebhookHandler) ProcessGitHubWebhook(c *fiber.Ctx) error {
 	// Process webhook
 	webhookEvent, err := h.webhookService.ProcessWebhook(c.Context(), processReq)
 	if err != nil {
-		h.logger.Error("Failed to process webhook", map[string]interface{}{
+		h.logger.Error(LogFailedToProcessWebhook, map[string]interface{}{
 			"project_id":  projectIDStr,
 			"event_type":  eventTypeStr,
 			"delivery_id": deliveryID,
@@ -107,30 +139,30 @@ func (h *WebhookHandler) ProcessGitHubWebhook(c *fiber.Ctx) error {
 			switch domainErr.Code() {
 			case domain.WebhookErrInvalidSignature:
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-					"error": "invalid webhook signature",
+					"error": ErrorInvalidWebhookSignature,
 				})
 			case domain.WebhookErrProjectNotFound:
 				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-					"error": "project not found",
+					"error": ErrorProjectNotFound,
 				})
 			case domain.WebhookErrInvalidPayload:
 				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-					"error": "invalid webhook payload",
+					"error": ErrorInvalidWebhookPayload,
 				})
 			default:
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"error": "internal server error",
+					"error": ErrorInternalServerError,
 				})
 			}
 		default:
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "internal server error",
+				"error": ErrorInternalServerError,
 			})
 		}
 	}
 
 	// Log successful processing
-	h.logger.Info("Webhook processed successfully", map[string]interface{}{
+	h.logger.Info(LogWebhookProcessedSuccessfully, map[string]interface{}{
 		"project_id":       projectIDStr,
 		"event_type":       eventTypeStr,
 		"delivery_id":      deliveryID,
@@ -140,7 +172,7 @@ func (h *WebhookHandler) ProcessGitHubWebhook(c *fiber.Ctx) error {
 	// Return response
 	response := dto.ToWebhookEventResponse(webhookEvent)
 	return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
-		"message": "webhook processed successfully",
+		"message": MessageWebhookProcessedSuccessfully,
 		"data":    response,
 	})
 }
@@ -151,14 +183,14 @@ func (h *WebhookHandler) GetWebhookEvents(c *fiber.Ctx) error {
 	projectIDStr := c.Params("projectId")
 	if projectIDStr == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "project_id is required",
+			"error": ErrorProjectIDRequired,
 		})
 	}
 
 	projectID, err := value_objects.NewIDFromString(projectIDStr)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid project_id format",
+			"error": ErrorInvalidProjectIDFormat,
 		})
 	}
 
@@ -179,12 +211,12 @@ func (h *WebhookHandler) GetWebhookEvents(c *fiber.Ctx) error {
 	// Get webhook events
 	webhookEvents, err := h.webhookService.GetWebhookEventsByProject(c.Context(), projectID, limit, offset)
 	if err != nil {
-		h.logger.Error("Failed to get webhook events", map[string]interface{}{
+		h.logger.Error(LogFailedToGetWebhookEvents, map[string]interface{}{
 			"project_id": projectIDStr,
 			"error":      err.Error(),
 		})
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to get webhook events",
+			"error": ErrorFailedToGetWebhookEvents,
 		})
 	}
 
@@ -210,26 +242,26 @@ func (h *WebhookHandler) GetWebhookEvent(c *fiber.Ctx) error {
 	eventIDStr := c.Params("eventId")
 	if eventIDStr == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "event_id is required",
+			"error": ErrorEventIDRequired,
 		})
 	}
 
 	eventID, err := value_objects.NewIDFromString(eventIDStr)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid event_id format",
+			"error": ErrorInvalidEventIDFormat,
 		})
 	}
 
 	// Get webhook event
 	webhookEvent, err := h.webhookService.GetWebhookEvent(c.Context(), eventID)
 	if err != nil {
-		h.logger.Error("Failed to get webhook event", map[string]interface{}{
+		h.logger.Error(LogFailedToGetWebhookEvent, map[string]interface{}{
 			"event_id": eventIDStr,
 			"error":    err.Error(),
 		})
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "webhook event not found",
+			"error": ErrorWebhookEventNotFound,
 		})
 	}
 

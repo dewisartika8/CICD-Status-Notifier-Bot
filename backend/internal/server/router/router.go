@@ -1,20 +1,17 @@
-/*
-File: Modul API Public Route
-@author -riff-
-Date : 28-02-2025
-*/
 package router
 
 import (
 	"github.com/gofiber/fiber/v2"
 
 	h "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/health"
+	p "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/project"
 	w "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/webhook"
 )
 
 type Dep struct {
 	App            *fiber.App
 	HealthHandler  *h.HealthHandler
+	ProjectHandler *p.Handler
 	WebhookHandler *w.WebhookHandler
 }
 
@@ -35,6 +32,9 @@ func (r *router) RegisterRoutes() {
 
 	// API v1 routes
 	api := r.App.Group("/api/v1")
+
+	// Project routes
+	r.ProjectHandler.RegisterRoutes(api)
 
 	// Webhook routes
 	webhooks := api.Group("/webhooks")

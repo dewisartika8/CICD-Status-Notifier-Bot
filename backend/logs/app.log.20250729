@@ -18,3 +18,5 @@ time="2025-07-29T12:52:56+07:00" level=info msg="Starting CI/CD Status Notifier 
 time="2025-07-29T12:52:56+07:00" level=info msg="Database connected successfully"
 time="2025-07-29T12:55:26+07:00" level=info msg="Starting CI/CD Status Notifier Bot..."
 time="2025-07-29T12:55:26+07:00" level=info msg="Database connected successfully"
+time="2025-07-29T13:10:12+07:00" level=info msg="Starting CI/CD Status Notifier Bot..."
+time="2025-07-29T13:10:12+07:00" level=fatal msg="Database connection error: failed to connect to database: failed to connect to `host=localhost user=postgres database=cicd_notifier`: failed SASL auth (FATAL: password authentication failed for user \"postgres\" (SQLSTATE 28P01))"

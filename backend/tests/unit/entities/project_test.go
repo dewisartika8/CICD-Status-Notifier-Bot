@@ -9,9 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestProject_NewProject(t *testing.T) {
+const (
+	testRepoURL = "https://github.com/user/repo"
+)
+
+func TestProjectNewProject(t *testing.T) {
 	name := "test-project"
-	repoURL := "https://github.com/user/repo"
+	repoURL := testRepoURL
 	secret := "webhook-secret"
 
 	project, err := domain.NewProject(name, repoURL, secret, nil)
@@ -24,15 +28,15 @@ func TestProject_NewProject(t *testing.T) {
 	assert.NotZero(t, project.UpdatedAt())
 }
 
-func TestProject_Validate(t *testing.T) {
+func TestProjectValidate(t *testing.T) {
 	tests := []struct {
 		name          string
 		nameVal       string
 		repoURLVal    string
 		expectedError bool
 	}{
-		{"valid project", "test", "https://github.com/user/repo", false},
-		{"empty name", "", "https://github.com/user/repo", true},
+		{"valid project", "test", testRepoURL, false},
+		{"empty name", "", testRepoURL, true},
 		{"empty repository URL", "test", "", true},
 	}
 	for _, tt := range tests {
@@ -48,8 +52,8 @@ func TestProject_Validate(t *testing.T) {
 	}
 }
 
-func TestProject_Update(t *testing.T) {
-	project, err := domain.NewProject("original", "https://github.com/user/repo", "secret", nil)
+func TestProjectUpdate(t *testing.T) {
+	project, err := domain.NewProject("original", testRepoURL, "secret", nil)
 	require.NoError(t, err)
 	originalCreatedAt := project.CreatedAt()
 	originalUpdatedAt := project.UpdatedAt()

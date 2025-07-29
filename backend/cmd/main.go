@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/health"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/project"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/webhook"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/repository"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/config"
@@ -74,6 +75,10 @@ func main() {
 
 	// Initialize handlers
 	healthHandler := health.NewHealthHandler(logger)
+	projectHandler := project.NewProjectHandler(project.ProjectHandlerDep{
+		ProjectService: projectService,
+		Logger:         logger,
+	})
 	webhookHandler := webhook.NewWebhookHandler(webhookService, logger)
 
 	// run APP in http server
@@ -81,6 +86,7 @@ func main() {
 	appService := app.Init(app.Dep{
 		AppConfig:      cfg,
 		HealthHandler:  healthHandler,
+		ProjectHandler: projectHandler,
 		WebhookHandler: webhookHandler,
 		Logger:         logger,
 	})

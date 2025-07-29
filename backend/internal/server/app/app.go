@@ -2,6 +2,7 @@ package app
 
 import (
 	h "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/health"
+	p "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/project"
 	w "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/webhook"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/config"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/server/middleware"
@@ -9,9 +10,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Error messages
+const (
+	ErrorInternalServerError = "Internal Server Error"
+)
+
 type Dep struct {
 	AppConfig      *config.AppConfig
 	HealthHandler  *h.HealthHandler
+	ProjectHandler *p.Handler
 	WebhookHandler *w.WebhookHandler
 	Logger         *logrus.Logger
 }
@@ -30,7 +37,7 @@ func Init(d Dep) *service {
 			ErrorHandler: func(c *fiber.Ctx, err error) error {
 				d.Logger.Errorf("Request error: %v", err)
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"error": "Internal Server Error",
+					"error": ErrorInternalServerError,
 				})
 			},
 		}),

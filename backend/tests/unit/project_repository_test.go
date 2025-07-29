@@ -14,8 +14,14 @@ import (
 )
 
 const (
-	testProjectName = "test-project"
-	testRepoURL     = "https://github.com/user/repo"
+	testProjectName               = "test-project"
+	testRepoURL                   = "https://github.com/user/repo"
+	testCaseCreateProjectSuccess  = "should create project successfully"
+	testCaseDuplicateName         = "should fail with duplicate name"
+	testCaseGetProjectByID        = "should get project by ID"
+	testCaseGetProjectByName      = "should get project by name"
+	testCaseNonExistentProject    = "should return error for non-existent project"
+	testCaseDeleteExistingProject = "should delete existing project"
 )
 
 func TestProjectRepositoryCreate(t *testing.T) {
@@ -31,12 +37,12 @@ func TestProjectRepositoryCreate(t *testing.T) {
 		expectedError error
 	}{
 		{
-			name:          "should create project successfully",
+			name:          testCaseCreateProjectSuccess,
 			project:       testutils.CreateTestProject(testProjectName, testRepoURL),
 			expectedError: nil,
 		},
 		{
-			name:          "should fail with duplicate name",
+			name:          testCaseDuplicateName,
 			project:       testutils.CreateTestProject(testProjectName, "https://github.com/user/another-repo"), // Same name as above
 			expectedError: projectdomain.ErrProjectAlreadyExists,
 		},
@@ -77,12 +83,12 @@ func TestProjectRepositoryGetByID(t *testing.T) {
 		expectedError error
 	}{
 		{
-			name:          "should get project by ID",
+			name:          testCaseGetProjectByID,
 			projectID:     project.ID(),
 			expectedError: nil,
 		},
 		{
-			name:          "should return error for non-existent project",
+			name:          testCaseNonExistentProject,
 			projectID:     value_objects.NewID(),
 			expectedError: projectdomain.ErrProjectNotFound,
 		},
@@ -126,12 +132,12 @@ func TestProjectRepositoryGetByName(t *testing.T) {
 		expectedError error
 	}{
 		{
-			name:          "should get project by name",
+			name:          testCaseGetProjectByName,
 			projectName:   "unique-project-name",
 			expectedError: nil,
 		},
 		{
-			name:          "should return error for non-existent project",
+			name:          testCaseNonExistentProject,
 			projectName:   "non-existent-project",
 			expectedError: projectdomain.ErrProjectNotFound,
 		},
@@ -238,12 +244,12 @@ func TestProjectRepositoryDelete(t *testing.T) {
 		expectedError error
 	}{
 		{
-			name:          "should delete existing project",
+			name:          testCaseDeleteExistingProject,
 			projectID:     project.ID(),
 			expectedError: nil,
 		},
 		{
-			name:          "should return error for non-existent project",
+			name:          testCaseNonExistentProject,
 			projectID:     value_objects.NewID(),
 			expectedError: projectdomain.ErrProjectNotFound,
 		},
