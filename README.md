@@ -6,6 +6,9 @@
 ![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 
+> **Backend Setup:**
+> Untuk instruksi detail instalasi dan menjalankan backend, lihat [backend/README.md](backend/README.md).
+
 > **Tugas Akhir - Workshop AI Enhancement**  
 > **Team:** 2 developers | **Duration:** 8 weeks | **Methodology:** Test-Driven Development (TDD)
 

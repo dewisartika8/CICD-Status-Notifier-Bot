@@ -11,11 +11,11 @@
 
 | Sprint | Total Tasks | Story Points | Completed | In Progress | Not Started | Progress |
 |--------|-------------|--------------|-----------|-------------|-------------|----------|
-| Sprint 1 | 8 tasks | 11 points | ⬜ 0 | ⬜ 0 | ⬜ 8 | 0% |
+| Sprint 1 | 8 tasks | 11 points | ✅ 6 | ⬜ 0 | ⬜ 2 | 75% |
 | Sprint 2 | 8 tasks | 13 points | ⬜ 0 | ⬜ 0 | ⬜ 8 | 0% |
 | Sprint 3 | 9 tasks | 16 points | ⬜ 0 | ⬜ 0 | ⬜ 9 | 0% |
 | Sprint 4 | 10 tasks | 25 points | ⬜ 0 | ⬜ 0 | ⬜ 10 | 0% |
-| **Total** | **35 tasks** | **65 points** | **0** | **0** | **35** | **0%** |
+| **Total** | **35 tasks** | **65 points** | **6** | **0** | **29** | **9.2%** |
 
 ---
 
@@ -26,81 +26,88 @@
 **Goal:** Establish development environment and project foundation
 
 #### ✅ Task Checklist:
-- [ ] **Task 1.1.1:** Initialize Go module with Fiber framework
+- [x] **Task 1.1.1:** Initialize Go module with Fiber framework
   - Setup Go module and dependencies
   - Configure Fiber web framework
   - Create basic application structure
-  - **Estimated:** 3 hours | **Status:** Not Started
+  - **Estimated:** 3 hours | **Status:** Complete
 
-- [ ] **Task 1.1.2:** Set up project directory structure
+- [x] **Task 1.1.2:** Set up project directory structure
   - Create folder hierarchy
   - Organize code by domain/feature
   - Setup test directories
-  - **Estimated:** 2 hours | **Status:** Not Started
+  - **Estimated:** 2 hours | **Status:** Complete
 
-- [ ] **Task 1.1.3:** Configure environment management (Viper)
+- [x] **Task 1.1.3:** Configure environment management (Viper)
   - Setup configuration system
   - Create environment files
   - Add configuration validation
-  - **Estimated:** 3 hours | **Status:** Not Started
+  - **Estimated:** 3 hours | **Status:** Complete
 
-- [ ] **Task 1.1.4:** Set up logging (Logrus)
+- [x] **Task 1.1.4:** Set up logging (Logrus)
   - Configure structured logging
   - Add log levels and formatting
   - Setup log rotation
-  - **Estimated:** 2 hours | **Status:** Not Started
+  - **Estimated:** 2 hours | **Status:** Complete
 
-- [ ] **Task 1.1.5:** Create Docker development environment
+- [x] **Task 1.1.5:** Create Docker development environment
   - Write Dockerfile for application
   - Create docker-compose.yml for development
   - Setup hot reload for development
-  - **Estimated:** 4 hours | **Status:** Not Started
+  - **Estimated:** 4 hours | **Status:** Complete
 
-- [ ] **Task 1.1.6:** Set up GitHub Actions for CI/CD
+- [x] **Task 1.1.6:** Set up GitHub Actions for CI/CD
   - Create workflow for automated testing
   - Setup code coverage reporting
   - Add build and deployment pipeline
-  - **Estimated:** 6 hours | **Status:** Not Started
+  - **Estimated:** 3 hours | **Status:** Complete
 
 ### Story 1.3: Webhook Infrastructure (8 points)
 **Goal:** Create robust webhook processing system
 
 #### ✅ Task Checklist:
-- [ ] **Task 1.3.1:** Create webhook endpoint structure
-  - Design REST endpoint for GitHub webhooks
-  - Setup routing and middleware
-  - Add request logging and monitoring
-  - **Estimated:** 4 hours | **Status:** Not Started
+- [x] **Task 1.3.1:** Create webhook endpoint structure
+  - Design REST endpoint for GitHub webhooks (**Done**)
+  - Setup routing and middleware (**Done**)
+  - Add request logging and monitoring (**Done**)
+  - **Estimated:** 4 hours | **Status:** Complete
 
-- [ ] **Task 1.3.2:** Implement GitHub webhook signature verification
-  - Implement HMAC-SHA256 verification
-  - Add security headers validation
-  - Create signature testing utilities
-  - **Estimated:** 6 hours | **Status:** Not Started
+- [x] **Task 1.3.2:** Implement GitHub webhook signature verification
+  - Implement HMAC-SHA256 verification (**Done**)
+  - Add security headers validation (**Done**)
+  - Create signature testing utilities (**Done**)
+  - **Estimated:** 6 hours | **Status:** Complete
 
-- [ ] **Task 1.3.3:** Create webhook payload parsing
-  - Parse GitHub Actions webhook payload
-  - Extract relevant build information
-  - Handle different event types
-  - **Estimated:** 6 hours | **Status:** Not Started
+- [x] **Task 1.3.3:** Create webhook payload parsing
+  - Parse GitHub Actions webhook payload (**Done**)
+  - Extract relevant build information (**Done**)
+  - Handle different event types (**Done**)
+  - **Estimated:** 6 hours | **Status:** Complete
 
-- [ ] **Task 1.3.4:** Implement basic event processing
-  - Route events to appropriate handlers
-  - Add event validation and filtering
-  - Create event processing pipeline
-  - **Estimated:** 6 hours | **Status:** Not Started
+- [x] **Task 1.3.4:** Implement basic event processing
+  - Route events to appropriate handlers (**Done**)
+  - Add event validation and filtering (**Done**)
+  - Create event processing pipeline (**Done**)
+  - **Estimated:** 6 hours | **Status:** Complete
 
-- [ ] **Task 1.3.5:** Add webhook endpoint tests
-  - Unit tests for signature verification
-  - Integration tests for webhook processing
-  - Mock GitHub webhook payloads
-  - **Estimated:** 6 hours | **Status:** Not Started
+- [x] **Task 1.3.5:** Add webhook endpoint tests
+  - Unit tests for signature verification (**Done**)
+  - Integration tests for webhook processing (**Done**)
+  - Mock GitHub webhook payloads (**Done**)
+  - **Estimated:** 6 hours | **Status:** Complete
 
 ### 📋 Sprint 1 Deliverables for Dewi:
-- [ ] Complete development environment with Docker
-- [ ] Working CI/CD pipeline
-- [ ] Secure webhook endpoint with signature verification
-- [ ] Event processing pipeline with tests
+- [x] Complete development environment with Docker
+- [x] Working CI/CD pipeline
+  - GitHub Actions workflow untuk build, test, dan code coverage sudah berjalan otomatis pada setiap push/PR.
+  - Pipeline memastikan aplikasi dapat dibuild, dijalankan, dan lulus pengujian unit/integrasi.
+- [x] Secure webhook endpoint with signature verification
+  - Endpoint webhook sudah memverifikasi signature HMAC-SHA256 dan validasi header keamanan.
+  - Pengujian unit dan integrasi untuk verifikasi signature sudah tersedia.
+- [x] Event processing pipeline with tests
+  - Pipeline pemrosesan event sudah meng-handle parsing payload, routing event, validasi, filtering, dan pemrosesan event.
+  - Tersedia unit test dan integration test untuk seluruh alur webhook, termasuk mock payload GitHub.
+  - Test coverage webhook endpoint dan event processing pipeline sudah mencakup skenario utama (valid/invalid signature, payload, dan event type).
 
 ---
 

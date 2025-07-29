@@ -7,15 +7,16 @@
 
 ## 📋 Today's Focus
 
-### Current Sprint: **Sprint 1** | Day: **___** | Date: **___________**
+
+### Current Sprint: **Sprint 1** | Day: **Database Foundation** | Date: **28 July 2025**
 
 #### 🧑‍💻 Arif's Today Tasks:
-- [ ] **Primary:** ________________________________
-- [ ] **Secondary:** ________________________________
-- [ ] **Integration:** ________________________________
+- [x] **Primary:** Finalisasi database schema, repository, dan sinkronisasi domain entities (Story 1.2) ✅
+- [x] **Secondary:** Update dan refactor unit test agar sesuai core/domain terbaru ✅
+- [x] **Integration:** Koordinasi dengan Dewi untuk validasi migrasi dan integrasi repository layer ✅
 
 #### 👩‍💻 Dewi's Today Tasks:
-- [ ] **Primary:** ________________________________
+- [x] **Primary:** Initialize Go module & Fiber framework (Task 1.1.1) ✅
 - [ ] **Secondary:** ________________________________
 - [ ] **Integration:** ________________________________
 

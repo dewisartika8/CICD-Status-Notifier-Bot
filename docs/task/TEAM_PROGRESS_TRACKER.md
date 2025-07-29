@@ -1,4 +1,9 @@
-# Team Progress Tracker
+# Team Progre| **Total Story Points** | 1| Sprint 1 | Week 1-2 | 10/10 points | 1/11 points | 11/21 points | ✅ Complete |2 points | 10 completed | 🟡 In Progress |
+| **Sprint Progress** | Sprint 1 | Completed | ✅ Complete |
+| **Code Coverage** | >85% | 45% | 🟡 In Progress |
+| **Test Cases** | 100+ tests | 25 written | 🟡 In Progress |
+| **API Endpoints** | 15+ endpoints | 6 implemented | 🟡 In Progress |
+| **Bot Commands** | 10+ commands | 1 implemented | 🔴 In Progress |cker
 ## CI/CD Status Notifier Bot Project
 
 > **Team:** Arif (Backend Core Lead) & Dewi (Integration & Bot Lead)  
@@ -12,29 +17,29 @@
 | Metric | Target | Current | Status |
 |--------|---------|---------|---------|
 | **Total Story Points** | 112 points | 0 completed | 🔴 Not Started |
-| **Sprint Progress** | Sprint 1 | Pre-Sprint | 🟡 Planning |
-| **Code Coverage** | >85% | 0% | 🔴 Not Started |
-| **Test Cases** | 100+ tests | 0 written | 🔴 Not Started |
-| **API Endpoints** | 15+ endpoints | 0 implemented | 🔴 Not Started |
-| **Bot Commands** | 10+ commands | 0 implemented | 🔴 Not Started |
+| **Sprint Progress** | Sprint 1 | In Progress | � On Track |
+| **Code Coverage** | >85% | 10% | � In Progress |
+| **Test Cases** | 100+ tests | 10 written | � In Progress |
+| **API Endpoints** | 15+ endpoints | 2 implemented | � In Progress |
+| **Bot Commands** | 10+ commands | 1 implemented | � In Progress |
 
 ---
 
 ## 📅 Sprint Overview & Progress
 
-### Current Sprint: **Sprint 1 - Foundation & Core Infrastructure**
-**Duration:** Week 1-2 | **Status:** Not Started | **Progress:** 0%
+### Current Sprint: **Sprint 2 - Notification System & Backend Services**
+**Duration:** Week 3-4 | **Status:** Ready to Start | **Progress:** 0%
 
 | Developer | Story Points | Tasks Complete | In Progress | Blocked |
 |-----------|-------------|----------------|-------------|---------|
-| **Arif** | 10 points | 0/8 tasks | 0 | 0 |
-| **Dewi** | 11 points | 0/8 tasks | 0 | 0 |
-| **Total** | 21 points | 0/16 tasks | 0 | 0 |
+| **Arif** | 10 points | 10/10 tasks | 0 | 0 |
+| **Dewi** | 11 points | 1/8 tasks | 0 | 0 |
+| **Total** | 21 points | 11/18 tasks | 0 | 0 |
 
 ### Sprint History:
 | Sprint | Duration | Arif Progress | Dewi Progress | Team Velocity | Status |
 |--------|----------|---------------|---------------|---------------|---------|
-| Sprint 1 | Week 1-2 | 0/10 points | 0/11 points | 0/21 points | 🔴 Not Started |
+| Sprint 1 | Week 1-2 | 10/10 points | 0/11 points | 10/21 points | � On Track |
 | Sprint 2 | Week 3-4 | 0/16 points | 0/13 points | 0/29 points | ⏳ Upcoming |
 | Sprint 3 | Week 5-6 | 0/21 points | 0/10 points | 0/31 points | ⏳ Upcoming |
 | Sprint 4 | Week 7-8 | 0/18 points | 0/13 points | 0/31 points | ⏳ Upcoming |
@@ -46,16 +51,16 @@
 ### 🧑‍💻 Arif's Tasks (Backend Core Lead):
 | Task | Story | Estimated | Status | Notes |
 |------|-------|----------|---------|-------|
-| Design PostgreSQL schema | 1.2 | 4h | ⬜ Not Started | Priority: High |
-| Implement GORM models | 1.2 | 6h | ⬜ Not Started | Depends on schema |
-| Create migrations | 1.2 | 4h | ⬜ Not Started | |
-| Repository pattern | 1.2 | 8h | ⬜ Not Started | |
-| Repository tests | 1.2 | 6h | ⬜ Not Started | |
-| Project CRUD API | 1.4 | 8h | ⬜ Not Started | |
-| Service layer | 1.4 | 6h | ⬜ Not Started | |
-| API tests | 1.4 | 8h | ⬜ Not Started | |
+| Design PostgreSQL schema | 1.2 | 4h | ✅ Complete | Database schema with hexagonal architecture |
+| Implement GORM models | 1.2 | 6h | ✅ Complete | Domain entities + GORM adapters |
+| Create migrations | 1.2 | 4h | ✅ Complete | Up/down migrations with constraints |
+| Repository pattern | 1.2 | 8h | ✅ Complete | Ports & adapters pattern implemented |
+| Repository tests | 1.2 | 6h | ✅ Complete | Unit tests for entities & business logic |
+| Project CRUD API | 1.4 | 8h | ✅ Complete | Full REST API endpoints implemented |
+| Service layer | 1.4 | 6h | ✅ Complete | Business logic with validation |
+| API tests | 1.4 | 8h | ✅ Complete | Integration & unit tests |
 
-**Arif's Sprint 1 Progress: 0/8 tasks (0%)**
+**Arif's Sprint 1 Progress: 8/8 tasks (100%)**
 
 ### 👩‍💻 Dewi's Tasks (Integration & Bot Lead):
 | Task | Story | Estimated | Status | Notes |
@@ -69,7 +74,7 @@
 | Webhook endpoints | 1.3 | 4h | ⬜ Not Started | |
 | Signature verification | 1.3 | 6h | ⬜ Not Started | Priority: High |
 
-**Dewi's Sprint 1 Progress: 0/8 tasks (0%)**
+**Dewi's Sprint 1 Progress: 1/8 tasks (12.5%)**
 
 ---
 
@@ -224,3 +229,47 @@ _________________________________
 
 **Project Status:** 🔴 Pre-Development Phase  
 **Next Milestone:** Complete Sprint 1 Setup by [Date]
+
+---
+
+## Sprint 1 Progress
+
+| Developer      | Total Tasks | Story Points | Completed | In Progress | Not Started | Progress |
+|----------------|------------|--------------|-----------|-------------|-------------|----------|
+| Dewi           | 8          | 11           | ✅ 6      | ⬜ 0        | ⬜ 2        | 75%      |
+| Backend Lead   | 8          | 11           | ✅ 6      | ⬜ 0        | ⬜ 2        | 75%      |
+
+### Dewi's Sprint 1 Tasks
+- [x] Task 1.1.1: Initialize Go module with Fiber framework
+- [x] Task 1.1.2: Set up project directory structure
+- [x] Task 1.1.3: Configure environment management (Viper)
+- [x] Task 1.1.4: Set up logging (Logrus)
+- [x] Task 1.1.5: Create Docker development environment
+- [x] Task 1.1.6: Set up GitHub Actions for CI/CD
+- [ ] Task 1.3.1: Create webhook endpoint structure
+- [ ] Task 1.3.2: Implement GitHub webhook signature verification
+
+### Backend Lead's Sprint 1 Tasks
+- [x] Task 1.1.1: Initialize Go module with Fiber framework
+- [x] Task 1.1.2: Set up project directory structure
+- [x] Task 1.1.3: Configure environment management (Viper)
+- [x] Task 1.1.4: Set up logging (Logrus)
+- [x] Task 1.1.5: Create Docker development environment
+- [x] Task 1.1.6: Set up GitHub Actions for CI/CD
+- [ ] Task 1.3.1: Create webhook endpoint structure
+- [ ] Task 1.3.2: Implement GitHub webhook signature verification
+
+---
+
+## Sprint 1 Summary
+
+- **Sprint Progress:** 75% (6/8 tasks completed)
+- **Remaining Tasks:** Webhook endpoint structure & signature verification
+- **Next Focus:** Story 1.3 (Webhook Infrastructure)
+
+---
+
+## Notes
+
+- All project setup, environment, logging, Docker, and CI/CD tasks are complete.
+- Webhook infrastructure tasks are next in queue for both developers.

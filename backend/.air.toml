@@ -1,0 +1,14 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o main cmd/main.go"
+bin = "main"
+include_ext = ["go", "yaml"]
+exclude_dir = ["tmp", "vendor"]
+
+[color]
+main = "yellow"
+watcher = "cyan"
+build = "green"
+runner = "magenta"
