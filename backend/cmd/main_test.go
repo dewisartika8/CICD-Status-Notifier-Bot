@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -38,21 +39,16 @@ func TestWebhookEndpoint(t *testing.T) {
 	payload := GitHubActionsPayload{
 		Action:   "completed",
 		Workflow: "CI",
-		Repository: struct {
-			Name string `json:"name"`
-		}{Name: "repo"},
-		Sender: struct {
-			Login string `json:"login"`
-		}{Login: "user"},
 	}
+	payload.Repository.Name = "repo"
+	payload.Sender.Login = "user"
 	body, _ := json.Marshal(payload)
 	mac := hmac.New(sha256.New, []byte("testsecret"))
 	mac.Write(body)
 	signature := "sha256=" + hex.EncodeToString(mac.Sum(nil))
 
-	req := httptest.NewRequest("POST", "/api/v1/webhooks/github/test", nil)
+	req := httptest.NewRequest("POST", "/api/v1/webhooks/github/test", bytes.NewReader(body))
 	req.Header.Set("X-Hub-Signature-256", signature)
-	req.Body = httptest.NopCloser(json.RawMessage(body))
 	resp, _ := app.Test(req)
 	if resp.StatusCode != http.StatusAccepted {
 		t.Errorf("Expected 202, got %d", resp.StatusCode)
