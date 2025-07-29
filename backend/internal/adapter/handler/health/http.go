@@ -4,18 +4,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/sirupsen/logrus"
 )
-
-type HealthHandler struct {
-	Logger *logrus.Logger
-}
-
-func NewHealthHandler(logger *logrus.Logger) *HealthHandler {
-	return &HealthHandler{
-		Logger: logger,
-	}
-}
 
 // HTTP Routing registerer
 func (h *HealthHandler) RegisterRoutes(r fiber.Router) {

@@ -10,12 +10,16 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/sirupsen/logrus"
 )
 
 // FiberMiddleware provide Fiber's built-in middlewares.
-func FiberMiddleware(a *fiber.App) {
+func FiberMiddleware(a *fiber.App, logger *logrus.Logger) {
 	a.Use(
+		// Add Recover middleware to handle panics.
 		recover.New(recover.Config{EnableStackTrace: true}),
+		// Add Traffic logger.
+		trafficLogMiddleware(logger),
 		// Add CORS to each route.
 		cors.New(cors.Config{
 			AllowOrigins: "*",

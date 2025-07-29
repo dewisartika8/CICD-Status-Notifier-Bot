@@ -8,17 +8,18 @@ import (
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/notification/domain"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/notification/port"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/shared/domain/value_objects"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 // TelegramSubscriptionModel represents the GORM model for telegram subscriptions
 type TelegramSubscriptionModel struct {
-	ID        string `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	ProjectID string `gorm:"not null;type:uuid"`
-	ChatID    int64  `gorm:"not null"`
-	IsActive  bool   `gorm:"not null;default:true"`
-	CreatedAt int64  `gorm:"autoCreateTime"`
-	UpdatedAt int64  `gorm:"autoUpdateTime"`
+	ID        uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	ProjectID uuid.UUID `gorm:"not null;type:uuid"`
+	ChatID    int64     `gorm:"not null"`
+	IsActive  bool      `gorm:"not null;default:true"`
+	CreatedAt time.Time `gorm:"type:timestamp with time zone;default:now()"`
+	UpdatedAt time.Time `gorm:"type:timestamp with time zone;default:now()"`
 }
 
 // TableName returns the table name for the TelegramSubscriptionModel
@@ -28,12 +29,12 @@ func (TelegramSubscriptionModel) TableName() string {
 
 // ToEntity converts the model to domain entity
 func (tsm *TelegramSubscriptionModel) ToEntity() (*domain.TelegramSubscription, error) {
-	id, err := value_objects.NewIDFromString(tsm.ID)
+	id, err := value_objects.NewIDFromString(tsm.ID.String())
 	if err != nil {
 		return nil, fmt.Errorf("invalid ID: %w", err)
 	}
 
-	projectID, err := value_objects.NewIDFromString(tsm.ProjectID)
+	projectID, err := value_objects.NewIDFromString(tsm.ProjectID.String())
 	if err != nil {
 		return nil, fmt.Errorf("invalid project ID: %w", err)
 	}
@@ -43,19 +44,25 @@ func (tsm *TelegramSubscriptionModel) ToEntity() (*domain.TelegramSubscription, 
 		ProjectID: projectID,
 		ChatID:    tsm.ChatID,
 		IsActive:  tsm.IsActive,
-		CreatedAt: value_objects.NewTimestampFromTime(time.Unix(tsm.CreatedAt, 0)),
-		UpdatedAt: value_objects.NewTimestampFromTime(time.Unix(tsm.UpdatedAt, 0)),
+		CreatedAt: value_objects.NewTimestampFromTime(tsm.CreatedAt),
+		UpdatedAt: value_objects.NewTimestampFromTime(tsm.UpdatedAt),
 	}), nil
 }
 
 // FromEntity converts domain entity to model
 func (tsm *TelegramSubscriptionModel) FromEntity(entity *domain.TelegramSubscription) {
-	tsm.ID = entity.ID().String()
-	tsm.ProjectID = entity.ProjectID().String()
+	// Parse UUID from string
+	if id, err := uuid.Parse(entity.ID().String()); err == nil {
+		tsm.ID = id
+	}
+	if projectID, err := uuid.Parse(entity.ProjectID().String()); err == nil {
+		tsm.ProjectID = projectID
+	}
+
 	tsm.ChatID = entity.ChatID()
 	tsm.IsActive = entity.IsActive()
-	tsm.CreatedAt = entity.CreatedAt().Unix()
-	tsm.UpdatedAt = entity.UpdatedAt().Unix()
+	tsm.CreatedAt = entity.CreatedAt().ToTime()
+	tsm.UpdatedAt = entity.UpdatedAt().ToTime()
 }
 
 const (
@@ -179,7 +186,7 @@ func (r *TelegramSubscriptionRepository) Update(ctx context.Context, subscriptio
 	model := &TelegramSubscriptionModel{}
 	model.FromEntity(subscription)
 
-	result := r.db.WithContext(ctx).Model(model).Where(queryTelegramByID, model.ID).Updates(model)
+	result := r.db.WithContext(ctx).Model(model).Where(queryTelegramByID, subscription.ID().String()).Updates(model)
 	if result.Error != nil {
 		return fmt.Errorf("failed to update telegram subscription: %w", result.Error)
 	}

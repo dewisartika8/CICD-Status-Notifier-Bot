@@ -24,7 +24,7 @@ const (
 // Default values
 const (
 	DefaultEnvironment        = "development"
-	DefaultServerPort         = "8080"
+	DefaultServerPort         = 8080
 	DefaultServerHost         = "localhost"
 	DefaultServerReadTimeout  = 30 * time.Second
 	DefaultServerWriteTimeout = 30 * time.Second

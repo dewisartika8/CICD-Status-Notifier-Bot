@@ -19,11 +19,10 @@ const (
 )
 
 func TestProjectModelToEntity(t *testing.T) {
-	id := uuid.New().String()
 	chatID := int64(123456789)
 	now := projectdomain.NewProjectFromDB(projectdomain.ProjectDBData{}).CreatedAt().ToTime()
 	model := &projectdomain.ProjectModel{
-		ID:             id,
+		ID:             uuid.New(),
 		Name:           "test-project",
 		RepositoryURL:  "https://github.com/user/repo",
 		WebhookSecret:  "secret123",

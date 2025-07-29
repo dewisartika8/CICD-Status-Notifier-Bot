@@ -6,7 +6,8 @@ import (
 
 func (s *service) createRoutes() {
 	router.NewRoutes(router.Dep{
-		App:           s.HTTPServer,
-		HealthHandler: s.HealthHandler,
+		App:            s.HTTPServer,
+		HealthHandler:  s.HealthHandler,
+		WebhookHandler: s.WebhookHandler,
 	}).RegisterRoutes()
 }

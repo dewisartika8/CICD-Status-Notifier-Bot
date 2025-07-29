@@ -2,6 +2,7 @@ package app
 
 import (
 	h "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/health"
+	w "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/webhook"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/config"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/server/middleware"
 	"github.com/gofiber/fiber/v2"
@@ -9,9 +10,10 @@ import (
 )
 
 type Dep struct {
-	AppConfig     *config.AppConfig
-	HealthHandler *h.HealthHandler
-	Logger        *logrus.Logger
+	AppConfig      *config.AppConfig
+	HealthHandler  *h.HealthHandler
+	WebhookHandler *w.WebhookHandler
+	Logger         *logrus.Logger
 }
 
 type service struct {
@@ -22,6 +24,7 @@ type service struct {
 func Init(d Dep) *service {
 	// Create Fiber app
 	return &service{
+		Dep: d,
 		HTTPServer: fiber.New(fiber.Config{
 			AppName: "CI/CD Status Notifier Bot",
 			ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -36,7 +39,7 @@ func Init(d Dep) *service {
 
 func (s *service) Run() {
 	// Middlewares.
-	middleware.FiberMiddleware(s.HTTPServer) // Register Fiber's middleware for app.
+	middleware.FiberMiddleware(s.HTTPServer, s.Logger) // Register Fiber's middleware for app.
 
 	s.createRoutes()
 

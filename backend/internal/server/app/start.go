@@ -26,7 +26,7 @@ func (s *service) startServerWithGracefulShutdown() {
 	}()
 
 	// Run server.
-	if err := s.HTTPServer.Listen(buildConnectionURL(s.AppConfig.ServerPort)); err != nil {
+	if err := s.HTTPServer.Listen(buildConnectionURL(s.AppConfig.Server.Port)); err != nil {
 		s.Logger.Error(fmt.Sprintf("Oops... Server is not running!, err: %s", err.Error()))
 	}
 

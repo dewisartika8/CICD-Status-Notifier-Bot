@@ -4,14 +4,15 @@ import (
 	"time"
 
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/shared/domain/value_objects"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 // NotificationLogModel represents the GORM model for notification logs
 type NotificationLogModel struct {
-	ID           string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	BuildEventID string     `gorm:"type:uuid;not null;index:idx_notification_logs_build_event"`
-	ProjectID    string     `gorm:"type:uuid;not null;index:idx_notification_logs_project"`
+	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	BuildEventID uuid.UUID  `gorm:"type:uuid;not null;index:idx_notification_logs_build_event"`
+	ProjectID    uuid.UUID  `gorm:"type:uuid;not null;index:idx_notification_logs_project"`
 	Channel      string     `gorm:"type:varchar(20);not null;index:idx_notification_logs_channel"`
 	Recipient    string     `gorm:"type:varchar(255);not null"`
 	Message      string     `gorm:"type:text;not null"`
@@ -49,9 +50,9 @@ func (nlm *NotificationLogModel) BeforeUpdate(tx *gorm.DB) error {
 
 // ToEntity converts GORM model to domain entity
 func (nlm *NotificationLogModel) ToEntity() *NotificationLog {
-	id, _ := value_objects.NewIDFromString(nlm.ID)
-	buildEventID, _ := value_objects.NewIDFromString(nlm.BuildEventID)
-	projectID, _ := value_objects.NewIDFromString(nlm.ProjectID)
+	id, _ := value_objects.NewIDFromString(nlm.ID.String())
+	buildEventID, _ := value_objects.NewIDFromString(nlm.BuildEventID.String())
+	projectID, _ := value_objects.NewIDFromString(nlm.ProjectID.String())
 
 	params := RestoreNotificationLogParams{
 		ID:           id,
@@ -78,9 +79,17 @@ func (nlm *NotificationLogModel) ToEntity() *NotificationLog {
 
 // FromEntity converts domain entity to GORM model
 func (nlm *NotificationLogModel) FromEntity(entity *NotificationLog) {
-	nlm.ID = entity.ID().String()
-	nlm.BuildEventID = entity.BuildEventID().String()
-	nlm.ProjectID = entity.ProjectID().String()
+	// Parse UUID from string
+	if id, err := uuid.Parse(entity.ID().String()); err == nil {
+		nlm.ID = id
+	}
+	if buildEventID, err := uuid.Parse(entity.BuildEventID().String()); err == nil {
+		nlm.BuildEventID = buildEventID
+	}
+	if projectID, err := uuid.Parse(entity.ProjectID().String()); err == nil {
+		nlm.ProjectID = projectID
+	}
+
 	nlm.Channel = string(entity.Channel())
 	nlm.Recipient = entity.Recipient()
 	nlm.Message = entity.Message()
@@ -99,12 +108,12 @@ func (nlm *NotificationLogModel) FromEntity(entity *NotificationLog) {
 
 // TelegramSubscriptionModel represents the GORM model for telegram subscriptions
 type TelegramSubscriptionModel struct {
-	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	ProjectID string    `gorm:"type:uuid;not null;index:idx_telegram_subscriptions_project"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	ProjectID uuid.UUID `gorm:"type:uuid;not null;index:idx_telegram_subscriptions_project"`
 	ChatID    int64     `gorm:"type:bigint;not null;index:idx_telegram_subscriptions_chat"`
 	IsActive  bool      `gorm:"type:boolean;not null;default:true;index:idx_telegram_subscriptions_active"`
-	CreatedAt time.Time `gorm:"type:timestamptz;not null;default:now()"`
-	UpdatedAt time.Time `gorm:"type:timestamptz;not null;default:now()"`
+	CreatedAt time.Time `gorm:"type:timestamp with time zone;not null;default:now()"`
+	UpdatedAt time.Time `gorm:"type:timestamp with time zone;not null;default:now()"`
 }
 
 // TableName returns the table name for the TelegramSubscriptionModel
@@ -132,8 +141,8 @@ func (tsm *TelegramSubscriptionModel) BeforeUpdate(tx *gorm.DB) error {
 
 // ToEntity converts GORM model to domain entity
 func (tsm *TelegramSubscriptionModel) ToEntity() *TelegramSubscription {
-	id, _ := value_objects.NewIDFromString(tsm.ID)
-	projectID, _ := value_objects.NewIDFromString(tsm.ProjectID)
+	id, _ := value_objects.NewIDFromString(tsm.ID.String())
+	projectID, _ := value_objects.NewIDFromString(tsm.ProjectID.String())
 
 	params := RestoreTelegramSubscriptionParams{
 		ID:        id,
@@ -149,8 +158,14 @@ func (tsm *TelegramSubscriptionModel) ToEntity() *TelegramSubscription {
 
 // FromEntity converts domain entity to GORM model
 func (tsm *TelegramSubscriptionModel) FromEntity(entity *TelegramSubscription) {
-	tsm.ID = entity.ID().String()
-	tsm.ProjectID = entity.ProjectID().String()
+	// Parse UUID from string
+	if id, err := uuid.Parse(entity.ID().String()); err == nil {
+		tsm.ID = id
+	}
+	if projectID, err := uuid.Parse(entity.ProjectID().String()); err == nil {
+		tsm.ProjectID = projectID
+	}
+
 	tsm.ChatID = entity.ChatID()
 	tsm.IsActive = entity.IsActive()
 	tsm.CreatedAt = entity.CreatedAt().ToTime()
