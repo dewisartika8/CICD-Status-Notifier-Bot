@@ -33,7 +33,7 @@ func TestProjectModelToEntity(t *testing.T) {
 	}
 	entity, err := model.ToEntity()
 	assert.NoError(t, err)
-	assert.Equal(t, model.ID, entity.ID().String())
+	assert.Equal(t, model.ID.String(), entity.ID().String())
 	assert.Equal(t, model.Name, entity.Name())
 	assert.Equal(t, model.RepositoryURL, entity.RepositoryURL())
 	assert.Equal(t, model.WebhookSecret, entity.WebhookSecret())
@@ -47,7 +47,7 @@ func TestProjectModelFromEntity(t *testing.T) {
 	assert.NoError(t, err)
 	var model projectdomain.ProjectModel
 	model.FromEntity(entity)
-	assert.Equal(t, entity.ID().String(), model.ID)
+	assert.Equal(t, entity.ID().String(), model.ID.String())
 	assert.Equal(t, entity.Name(), model.Name)
 	assert.Equal(t, entity.RepositoryURL(), model.RepositoryURL)
 	assert.Equal(t, entity.WebhookSecret(), model.WebhookSecret)
