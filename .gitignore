@@ -33,6 +33,9 @@ desktop.ini
 .env
 .env.*
 
+# Project config
+config.yaml
+
 # Node.js (if frontend exists)
 node_modules/
 npm-debug.log*
