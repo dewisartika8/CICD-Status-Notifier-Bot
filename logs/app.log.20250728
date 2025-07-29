@@ -1,2 +1,0 @@
-time="2025-07-28T20:45:52+07:00" level=info msg="Starting CI/CD Status Notifier Bot..."
-time="2025-07-28T20:45:52+07:00" level=fatal msg="Database connection error: failed to connect to database: failed to connect to `host=localhost user=postgres database=cicd_notifier`: failed SASL auth (FATAL: password authentication failed for user \"postgres\" (SQLSTATE 28P01))"
