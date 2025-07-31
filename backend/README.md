@@ -81,20 +81,48 @@ go mod tidy
 
 ### 3. Setup Environment
 
+#### Konfigurasi dengan Prioritas Hierarki ⚡
+
+Aplikasi menggunakan **sistem konfigurasi hierarki** dengan prioritas sebagai berikut:
+
+1. **Environment Variables** (Prioritas Tertinggi)
+2. **Configuration File** (config/config.yaml)
+3. **Default Values** (Prioritas Terendah)
+
+> 📖 **Detail lengkap**: Lihat [Configuration Priority Guide](../docs/CONFIGURATION_PRIORITY_GUIDE.md)
+
+#### Option 1: Menggunakan Environment Variables (Recommended untuk Production)
+
 ```bash
-# Copy dan edit file konfigurasi
-cp internal/config/config.yaml.example internal/config/config.yaml
+# Contoh untuk Windows PowerShell
+$env:TELEGRAM_BOT_TOKEN="your_bot_token_here"
+$env:SERVER_PORT=8080
+$env:DB_HOST="localhost"
+$env:DB_PASSWORD="your_secure_password"
+
+# Contoh untuk Linux/macOS
+export TELEGRAM_BOT_TOKEN="your_bot_token_here"
+export SERVER_PORT=8080
+export DB_HOST="localhost"
+export DB_PASSWORD="your_secure_password"
 ```
 
-Edit file `config.yaml` sesuai dengan environment Anda:
+#### Option 2: Menggunakan Configuration File (Recommended untuk Development)
+
+```bash
+# Copy file example dan edit
+cp config/config-example.yaml config/config.yaml
+```
+
+Edit file `config/config.yaml` sesuai dengan environment Anda:
 
 ```yaml
 server:
-  port: "8080"
+  port: 8081
   host: "localhost"
 
 database:
-  host: "localhost"
+  host: "127.0.0.1"
   port: "5432"
   user: "postgres"
   password: "password"
@@ -106,10 +134,31 @@ database:
 
 telegram:
   bot_token: "your_bot_token"
+  webhook_url: "https://yourdomain.com/webhooks/telegram"
+
+github:
+  webhook_secret: "your_github_secret"
+
+gitlab:
+  webhook_secret: "your_gitlab_secret"
   
 logging:
   level: "info"
   format: "json"
+  output: "stdout"
+```
+
+#### Option 3: Hybrid Approach (Recommended untuk Docker)
+
+Kombinasi environment variables untuk sensitive data dan config file untuk konfigurasi umum:
+
+```bash
+# Sensitive data via environment
+export TELEGRAM_BOT_TOKEN="your_bot_token"
+export DB_PASSWORD="secure_password"
+export GITHUB_WEBHOOK_SECRET="secret123"
+
+# Non-sensitive config tetap di config.yaml
 ```
 
 ### 4. Setup Database

@@ -6,6 +6,7 @@ import (
 
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/health"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/project"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/telegram"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/webhook"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/repository"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/config"
@@ -13,7 +14,6 @@ import (
 	ps "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/project/service"
 	ws "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/webhook/service"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/server/app"
-	"github.com/dewisartika8/cicd-status-notifier-bot/internal/telegram"
 	"github.com/dewisartika8/cicd-status-notifier-bot/pkg/crypto"
 	"github.com/dewisartika8/cicd-status-notifier-bot/pkg/database"
 	"github.com/dewisartika8/cicd-status-notifier-bot/pkg/logger"
@@ -81,16 +81,17 @@ func main() {
 		Logger:         logger,
 	})
 	webhookHandler := webhook.NewWebhookHandler(webhookService, logger)
+	telegramHandler := telegram.NewTelegramHandler(cfg)
 
 	// run APP in http server
 	// inject all usecases here
 	appService := app.Init(app.Dep{
-		AppConfig:      cfg,
-		HealthHandler:  healthHandler,
-		ProjectHandler: projectHandler,
-		WebhookHandler: webhookHandler,
-		Logger:         logger,
+		AppConfig:       cfg,
+		HealthHandler:   healthHandler,
+		ProjectHandler:  projectHandler,
+		WebhookHandler:  webhookHandler,
+		TelegramHandler: telegramHandler,
+		Logger:          logger,
 	})
-	go telegram.StartTelegramBot()
 	appService.Run() // start http server
 }

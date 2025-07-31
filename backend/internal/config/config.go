@@ -12,13 +12,17 @@ import (
 
 // Constants for environment variables
 const (
-	EnvServerPort    = "SERVER_PORT"
-	EnvTelegramToken = "TELEGRAM_TOKEN"
-	EnvDBHost        = "DB_HOST"
-	EnvDBPort        = "DB_PORT"
-	EnvDBUser        = "DB_USER"
-	EnvDBPassword    = "DB_PASSWORD"
-	EnvDBName        = "DB_NAME"
+	EnvServerPort          = "SERVER_PORT"
+	EnvTelegramBotToken    = "TELEGRAM_BOT_TOKEN"
+	EnvDBHost              = "DB_HOST"
+	EnvDBPort              = "DB_PORT"
+	EnvDBUser              = "DB_USER"
+	EnvDBPassword          = "DB_PASSWORD"
+	EnvDBName              = "DB_NAME"
+	EnvGitHubWebhookSecret = "GITHUB_WEBHOOK_SECRET"
+	EnvGitLabWebhookSecret = "GITLAB_WEBHOOK_SECRET"
+	EnvLogLevel            = "LOG_LEVEL"
+	EnvEnvironment         = "ENVIRONMENT"
 )
 
 // Default values
@@ -70,7 +74,7 @@ type ViperConfigLoader struct {
 // NewViperConfigLoader creates a new ViperConfigLoader
 func NewViperConfigLoader() *ViperConfigLoader {
 	return &ViperConfigLoader{
-		configPaths: []string{"./internal/config", "."},
+		configPaths: []string{"../../config", "./config", "./internal/config", "."},
 		configName:  "config",
 		configType:  "yaml",
 	}
@@ -130,10 +134,6 @@ type AppConfig struct {
 	GitHub      GitHubConfig   `mapstructure:"github" yaml:"github"`
 	GitLab      GitLabConfig   `mapstructure:"gitlab" yaml:"gitlab"`
 	Logging     LoggingConfig  `mapstructure:"logging" yaml:"logging"`
-
-	// Backward compatibility
-	ServerPort    int    `mapstructure:"SERVER_PORT"`
-	TelegramToken string `mapstructure:"TELEGRAM_TOKEN"`
 }
 
 // Load implements ConfigLoader interface
@@ -149,7 +149,6 @@ func (loader *ViperConfigLoader) Load() (*AppConfig, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	loader.handleBackwardCompatibility(&cfg)
 	loader.overrideWithEnvVars(&cfg)
 
 	if err := validateConfig(&cfg); err != nil {
@@ -180,26 +179,28 @@ func (loader *ViperConfigLoader) setupViper(v *viper.Viper) error {
 	return nil
 }
 
-// handleBackwardCompatibility maintains compatibility with old config fields
-func (loader *ViperConfigLoader) handleBackwardCompatibility(cfg *AppConfig) {
-	if cfg.ServerPort != 0 && cfg.Server.Port == 0 {
-		cfg.Server.Port = cfg.ServerPort
-	}
-	if cfg.TelegramToken != "" && cfg.Telegram.BotToken == "" {
-		cfg.Telegram.BotToken = cfg.TelegramToken
-	}
-}
-
 // overrideWithEnvVars overrides config values with environment variables
 func (loader *ViperConfigLoader) overrideWithEnvVars(cfg *AppConfig) {
-	// Override string fields
+	// Override environment first
+	if value := os.Getenv(EnvEnvironment); value != "" {
+		cfg.Environment = value
+	}
+
+	// Override string fields with priority for TELEGRAM_BOT_TOKEN
+	if value := os.Getenv(EnvTelegramBotToken); value != "" {
+		cfg.Telegram.BotToken = value
+	}
+
+	// Override other string fields
 	envOverrides := map[string]*string{
-		EnvTelegramToken: &cfg.Telegram.BotToken,
-		EnvDBHost:        &cfg.Database.Host,
-		EnvDBPort:        &cfg.Database.Port,
-		EnvDBUser:        &cfg.Database.User,
-		EnvDBPassword:    &cfg.Database.Password,
-		EnvDBName:        &cfg.Database.DBName,
+		EnvDBHost:              &cfg.Database.Host,
+		EnvDBPort:              &cfg.Database.Port,
+		EnvDBUser:              &cfg.Database.User,
+		EnvDBPassword:          &cfg.Database.Password,
+		EnvDBName:              &cfg.Database.DBName,
+		EnvGitHubWebhookSecret: &cfg.GitHub.WebhookSecret,
+		EnvGitLabWebhookSecret: &cfg.GitLab.WebhookSecret,
+		EnvLogLevel:            &cfg.Logging.Level,
 	}
 
 	for envKey, configField := range envOverrides {
@@ -244,6 +245,14 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("logging.format", DefaultLogFormat)
 	v.SetDefault("logging.output", DefaultLogOutput)
 	v.SetDefault("logging.file_path", DefaultLogFilePath)
+
+	// Set defaults for telegram (empty by default, should be set via config or env)
+	v.SetDefault("telegram.bot_token", "")
+	v.SetDefault("telegram.webhook_url", "")
+
+	// Set defaults for webhook secrets (empty by default)
+	v.SetDefault("github.webhook_secret", "")
+	v.SetDefault("gitlab.webhook_secret", "")
 }
 
 // validateConfig validates the configuration
@@ -252,6 +261,11 @@ func validateConfig(cfg *AppConfig) error {
 
 	// Validate server configuration
 	if err := validateServerConfig(&cfg.Server); err != nil {
+		validationErrors = append(validationErrors, err)
+	}
+
+	// Validate telegram configuration
+	if err := validateTelegramConfig(&cfg.Telegram); err != nil {
 		validationErrors = append(validationErrors, err)
 	}
 
@@ -285,6 +299,18 @@ func validateServerConfig(cfg *ServerConfig) error {
 		return ConfigValidationError{
 			Field:   "server.host",
 			Message: "host must be set",
+		}
+	}
+
+	return nil
+}
+
+// validateTelegramConfig validates telegram configuration
+func validateTelegramConfig(cfg *TelegramConfig) error {
+	if cfg.BotToken == "" {
+		return ConfigValidationError{
+			Field:   "telegram.bot_token",
+			Message: "bot token is required",
 		}
 	}
 

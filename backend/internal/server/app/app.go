@@ -3,6 +3,7 @@ package app
 import (
 	h "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/health"
 	p "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/project"
+	t "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/telegram"
 	w "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/webhook"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/config"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/server/middleware"
@@ -16,19 +17,27 @@ const (
 )
 
 type Dep struct {
-	AppConfig      *config.AppConfig
-	HealthHandler  *h.HealthHandler
-	ProjectHandler *p.Handler
-	WebhookHandler *w.WebhookHandler
-	Logger         *logrus.Logger
+	AppConfig       *config.AppConfig
+	HealthHandler   *h.HealthHandler
+	ProjectHandler  *p.Handler
+	WebhookHandler  *w.WebhookHandler
+	TelegramHandler *t.TelegramHandler
+	Logger          *logrus.Logger
 }
 
 type service struct {
 	Dep
-	HTTPServer *fiber.App
+	HTTPServer         *fiber.App
+	TelegramBotManager *TelegramBotManager
 }
 
 func Init(d Dep) *service {
+	// Create Telegram bot manager
+	var telegramBotManager *TelegramBotManager
+	if d.TelegramHandler != nil {
+		telegramBotManager = NewTelegramBotManager(d.TelegramHandler.GetBotService(), d.AppConfig)
+	}
+
 	// Create Fiber app
 	return &service{
 		Dep: d,
@@ -41,6 +50,7 @@ func Init(d Dep) *service {
 				})
 			},
 		}),
+		TelegramBotManager: telegramBotManager,
 	}
 }
 

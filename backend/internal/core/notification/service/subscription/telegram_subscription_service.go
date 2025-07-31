@@ -1,4 +1,4 @@
-package service
+package subscription
 
 import (
 	"context"
@@ -10,35 +10,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Error message constants for better maintainability
+// Resource type constants
 const (
-	errMsgGetTelegramSub    = "failed to get telegram subscription: %w"
-	errMsgUpdateTelegramSub = "failed to update telegram subscription: %w"
-	errMsgDeleteTelegramSub = "failed to delete telegram subscription: %w"
-	errMsgCreateTelegramSub = "failed to create telegram subscription: %w"
+	resourceSubscription = "telegram subscription"
 )
 
-// Log message constants to avoid duplication
-const (
-	logMsgGetTelegramSub    = "Failed to get telegram subscription"
-	logMsgUpdateTelegramSub = "Failed to update telegram subscription"
-	logMsgDeleteTelegramSub = "Failed to delete telegram subscription"
-)
-
-type TelegramDep struct {
+type Dep struct {
+	// put your dependencies here
 	TelegramRepo port.TelegramSubscriptionRepository
 	Logger       *logrus.Logger
 }
 
 // telegramSubscriptionService implements telegram subscription business logic
 type telegramSubscriptionService struct {
-	TelegramDep
+	Dep
 }
 
 // NewTelegramSubscriptionService creates a new telegram subscription service
-func NewTelegramSubscriptionService(d TelegramDep) port.TelegramSubscriptionService {
+func NewTelegramSubscriptionService(d Dep) port.TelegramSubscriptionService {
 	return &telegramSubscriptionService{
-		TelegramDep: d,
+		Dep: d,
 	}
 }
 
@@ -69,7 +60,7 @@ func (s *telegramSubscriptionService) CreateTelegramSubscription(
 	subscription, err := domain.NewTelegramSubscription(projectID, chatID)
 	if err != nil {
 		s.Logger.WithError(err).Error("Failed to create telegram subscription entity")
-		return nil, fmt.Errorf("failed to create telegram subscription: %w", err)
+		return nil, fmt.Errorf(domain.ErrMsgCreate, resourceSubscription, err)
 	}
 
 	// Persist the subscription
@@ -88,8 +79,8 @@ func (s *telegramSubscriptionService) GetTelegramSubscription(ctx context.Contex
 
 	subscription, err := s.TelegramRepo.GetByID(ctx, id)
 	if err != nil {
-		s.Logger.WithError(err).Error(logMsgGetTelegramSub)
-		return nil, fmt.Errorf(errMsgGetTelegramSub, err)
+		s.Logger.WithError(err).Error(domain.LogMsgGetSubscription)
+		return nil, fmt.Errorf(domain.ErrMsgGet, resourceSubscription, err)
 	}
 
 	return subscription, nil
@@ -133,8 +124,8 @@ func (s *telegramSubscriptionService) UpdateTelegramSubscription(
 	// Get the subscription
 	subscription, err := s.TelegramRepo.GetByID(ctx, id)
 	if err != nil {
-		s.Logger.WithError(err).Error(logMsgGetTelegramSub)
-		return nil, fmt.Errorf(errMsgGetTelegramSub, err)
+		s.Logger.WithError(err).Error(domain.LogMsgGetSubscription)
+		return nil, fmt.Errorf(domain.ErrMsgGet, resourceSubscription, err)
 	}
 
 	// Update chat ID if provided
@@ -156,8 +147,8 @@ func (s *telegramSubscriptionService) UpdateTelegramSubscription(
 
 	// Update the subscription in repository
 	if err := s.TelegramRepo.Update(ctx, subscription); err != nil {
-		s.Logger.WithError(err).Error(logMsgUpdateTelegramSub)
-		return nil, fmt.Errorf(errMsgUpdateTelegramSub, err)
+		s.Logger.WithError(err).Error(domain.LogMsgUpdateSubscription)
+		return nil, fmt.Errorf(domain.ErrMsgUpdate, resourceSubscription, err)
 	}
 
 	s.Logger.Info("Telegram subscription updated successfully")
@@ -183,15 +174,15 @@ func (s *telegramSubscriptionService) ActivateTelegramSubscription(ctx context.C
 
 	subscription, err := s.TelegramRepo.GetByID(ctx, id)
 	if err != nil {
-		s.Logger.WithError(err).Error(logMsgGetTelegramSub)
-		return fmt.Errorf(errMsgGetTelegramSub, err)
+		s.Logger.WithError(err).Error(domain.LogMsgGetSubscription)
+		return fmt.Errorf(domain.ErrMsgGet, resourceSubscription, err)
 	}
 
 	subscription.Activate()
 
 	if err := s.TelegramRepo.Update(ctx, subscription); err != nil {
-		s.Logger.WithError(err).Error(logMsgUpdateTelegramSub)
-		return fmt.Errorf(errMsgUpdateTelegramSub, err)
+		s.Logger.WithError(err).Error(domain.LogMsgUpdateSubscription)
+		return fmt.Errorf(domain.ErrMsgUpdate, resourceSubscription, err)
 	}
 
 	s.Logger.Info("Telegram subscription activated successfully")
@@ -204,15 +195,15 @@ func (s *telegramSubscriptionService) DeactivateTelegramSubscription(ctx context
 
 	subscription, err := s.TelegramRepo.GetByID(ctx, id)
 	if err != nil {
-		s.Logger.WithError(err).Error(logMsgGetTelegramSub)
-		return fmt.Errorf(errMsgGetTelegramSub, err)
+		s.Logger.WithError(err).Error(domain.LogMsgGetSubscription)
+		return fmt.Errorf(domain.ErrMsgGet, resourceSubscription, err)
 	}
 
 	subscription.Deactivate()
 
 	if err := s.TelegramRepo.Update(ctx, subscription); err != nil {
-		s.Logger.WithError(err).Error(logMsgUpdateTelegramSub)
-		return fmt.Errorf(errMsgUpdateTelegramSub, err)
+		s.Logger.WithError(err).Error(domain.LogMsgUpdateSubscription)
+		return fmt.Errorf(domain.ErrMsgUpdate, resourceSubscription, err)
 	}
 
 	s.Logger.Info("Telegram subscription deactivated successfully")

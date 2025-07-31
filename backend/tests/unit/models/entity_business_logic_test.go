@@ -61,7 +61,7 @@ func TestTelegramSubscriptionEntityBusinessLogic(t *testing.T) {
 	subscription, err := notificationdomain.NewTelegramSubscription(projectID, chatID)
 	assert.NoError(t, err)
 	assert.NotNil(t, subscription)
-	assert.Equal(t, projectID, subscription.ID())
+	assert.Equal(t, projectID, subscription.ProjectID()) // Test ProjectID, not ID
 	assert.Equal(t, chatID, subscription.ChatID())
 	assert.True(t, subscription.IsActive())
 	// Test unsubscribe
@@ -74,7 +74,8 @@ func TestNotificationLogEntityBusinessLogic(t *testing.T) {
 	channel := notificationdomain.NotificationChannelTelegram
 	recipient := "test_user"
 	message := "test message"
-	log, err := notificationdomain.NewNotificationLog(buildEventID, projectID, channel, recipient, message)
+	maxRetries := 3
+	log, err := notificationdomain.NewNotificationLog(buildEventID, projectID, channel, recipient, message, maxRetries)
 	assert.NoError(t, err)
 	assert.NotNil(t, log)
 	assert.Equal(t, buildEventID, log.BuildEventID())

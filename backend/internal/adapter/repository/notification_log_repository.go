@@ -214,8 +214,11 @@ func (r *NotificationLogRepository) Count(ctx context.Context, projectID *value_
 }
 
 // GetNotificationStats retrieves notification statistics for a project
-func (r *NotificationLogRepository) GetNotificationStats(ctx context.Context, projectID value_objects.ID) (map[domain.NotificationStatus]int64, error) {
-	var results []struct {
+func (r *NotificationLogRepository) GetNotificationStats(ctx context.Context, projectID value_objects.ID) (*domain.NotificationStats, error) {
+	stats := domain.NewNotificationStats(projectID)
+
+	// Get status counts
+	var statusResults []struct {
 		Status string
 		Count  int64
 	}
@@ -224,15 +227,36 @@ func (r *NotificationLogRepository) GetNotificationStats(ctx context.Context, pr
 		Select("status, COUNT(*) as count").
 		Where(queryByProjectID, projectID.String()).
 		Group("status").
-		Scan(&results).Error
+		Scan(&statusResults).Error
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get notification stats: %w", err)
+		return nil, fmt.Errorf("failed to get notification status stats: %w", err)
 	}
 
-	stats := make(map[domain.NotificationStatus]int64)
-	for _, result := range results {
-		stats[domain.NotificationStatus(result.Status)] = result.Count
+	for _, result := range statusResults {
+		stats.UpdateStatusCount(domain.NotificationStatus(result.Status), result.Count)
+	}
+
+	// Get channel counts
+	var channelResults []struct {
+		Channel string
+		Count   int64
+	}
+
+	err = r.db.WithContext(ctx).Model(&domain.NotificationLogModel{}).
+		Select("channel, COUNT(*) as count").
+		Where(queryByProjectID, projectID.String()).
+		Group("channel").
+		Scan(&channelResults).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get notification channel stats: %w", err)
+	}
+
+	for _, result := range channelResults {
+		if result.Channel != "" {
+			stats.UpdateChannelCount(domain.NotificationChannel(result.Channel), result.Count)
+		}
 	}
 
 	return stats, nil

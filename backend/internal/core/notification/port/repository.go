@@ -7,6 +7,36 @@ import (
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/shared/domain/value_objects"
 )
 
+// NotificationTemplateRepository defines the contract for notification template data access
+type NotificationTemplateRepository interface {
+	// Create creates a new notification template
+	Create(ctx context.Context, template *domain.NotificationTemplate) error
+
+	// GetByID retrieves a notification template by its ID
+	GetByID(ctx context.Context, id value_objects.ID) (*domain.NotificationTemplate, error)
+
+	// GetByTypeAndChannel retrieves a notification template by type and channel
+	GetByTypeAndChannel(ctx context.Context, templateType domain.NotificationTemplateType, channel domain.NotificationChannel) (*domain.NotificationTemplate, error)
+
+	// GetByType retrieves all notification templates for a specific type
+	GetByType(ctx context.Context, templateType domain.NotificationTemplateType) ([]*domain.NotificationTemplate, error)
+
+	// GetByChannel retrieves all notification templates for a specific channel
+	GetByChannel(ctx context.Context, channel domain.NotificationChannel) ([]*domain.NotificationTemplate, error)
+
+	// GetActiveTemplates retrieves all active notification templates
+	GetActiveTemplates(ctx context.Context) ([]*domain.NotificationTemplate, error)
+
+	// Update updates an existing notification template
+	Update(ctx context.Context, template *domain.NotificationTemplate) error
+
+	// Delete deletes a notification template by its ID
+	Delete(ctx context.Context, id value_objects.ID) error
+
+	// Count returns the total number of notification templates
+	Count(ctx context.Context, templateType *domain.NotificationTemplateType, channel *domain.NotificationChannel, isActive *bool) (int64, error)
+}
+
 // NotificationLogRepository defines the contract for notification log data access
 type NotificationLogRepository interface {
 	// Create creates a new notification log
@@ -40,7 +70,7 @@ type NotificationLogRepository interface {
 	Count(ctx context.Context, projectID *value_objects.ID, status *domain.NotificationStatus) (int64, error)
 
 	// GetNotificationStats retrieves notification statistics for a project
-	GetNotificationStats(ctx context.Context, projectID value_objects.ID) (map[domain.NotificationStatus]int64, error)
+	GetNotificationStats(ctx context.Context, projectID value_objects.ID) (*domain.NotificationStats, error)
 }
 
 // TelegramSubscriptionRepository defines the contract for telegram subscription data access
@@ -77,4 +107,28 @@ type TelegramSubscriptionRepository interface {
 
 	// Count returns the total number of telegram subscriptions
 	Count(ctx context.Context, projectID *value_objects.ID, isActive *bool) (int64, error)
+}
+
+// RetryConfigurationRepository defines the interface for retry configuration persistence
+type RetryConfigurationRepository interface {
+	// Create saves a new retry configuration
+	Create(ctx context.Context, config *domain.RetryConfiguration) error
+
+	// GetByID retrieves a retry configuration by ID
+	GetByID(ctx context.Context, id value_objects.ID) (*domain.RetryConfiguration, error)
+
+	// GetActiveConfigurations retrieves all active retry configurations
+	GetActiveConfigurations(ctx context.Context) ([]*domain.RetryConfiguration, error)
+
+	// GetByChannel retrieves retry configuration for a specific channel
+	GetByChannel(ctx context.Context, channel domain.NotificationChannel) (*domain.RetryConfiguration, error)
+
+	// Update saves changes to an existing retry configuration
+	Update(ctx context.Context, config *domain.RetryConfiguration) error
+
+	// Delete removes a retry configuration
+	Delete(ctx context.Context, id value_objects.ID) error
+
+	// BulkCreate saves multiple retry configurations
+	BulkCreate(ctx context.Context, configs []*domain.RetryConfiguration) error
 }

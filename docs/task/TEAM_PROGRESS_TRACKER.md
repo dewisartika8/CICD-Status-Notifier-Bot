@@ -11,10 +11,10 @@
 
 | Metric | Target | Current | Status |
 |--------|---------|---------|---------|
-| **Total Story Points** | 112 points | 21 completed | � In Progress |
+| **Total Story Points** | 112 points | 35 completed | 🟡 In Progress |
 | **Sprint Progress** | Sprint 1 | Complete | ✅ Complete |
 | **Code Coverage** | >85% | 85% | ✅ On Target |
-| **Test Cases** | 100+ tests | 45 written | 🟡 In Progress |
+| **Test Cases** | 100+ tests | 75 written | 🟡 In Progress |
 | **API Endpoints** | 15+ endpoints | 8 implemented | 🟡 In Progress |
 | **Bot Commands** | 10+ commands | 3 implemented | 🟡 In Progress |
 
@@ -22,26 +22,52 @@
 
 ## 📅 Sprint Overview & Progress
 
-### Current Sprint: **Sprint 1 - Project Setup & Infrastructure**
-**Duration:** Week 1-2 | **Status:** Complete | **Progress:** 100%
+### Current Sprint: **Sprint 2 - Notification System & Backend Services**
+**Duration:** Week 3-4 | **Status:** In Progress | **Progress:** 40%
 
 | Developer | Story Points | Tasks Complete | In Progress | Not Started |
 |-----------|-------------|----------------|-------------|-------------|
-| **Arif** | 10 points | 8/8 tasks | 0 | 0 |
-| **Dewi** | 11 points | 8/8 tasks | 0 | 0 |
-| **Total** | 21 points | 16/16 tasks | 0 | 0 |
+| **Arif** | 16 points | 4/5 tasks | 0 | 1 |
+| **Dewi** | 13 points | 0/5 tasks | 0 | 5 |
+| **Total** | 29 points | 4/10 tasks | 0 | 6 |
 
 ### Sprint History:
 | Sprint | Duration | Arif Progress | Dewi Progress | Team Velocity | Status |
 |--------|----------|---------------|---------------|---------------|---------|
 | Sprint 1 | Week 1-2 | 10/10 points | 11/11 points | 21/21 points | ✅ Complete |
-| Sprint 2 | Week 3-4 | 0/16 points | 0/13 points | 0/29 points | ⏳ Upcoming |
+| Sprint 2 | Week 3-4 | 12/16 points | 0/13 points | 12/29 points | 🟡 In Progress |
 | Sprint 3 | Week 5-6 | 0/21 points | 0/10 points | 0/31 points | ⏳ Upcoming |
 | Sprint 4 | Week 7-8 | 0/18 points | 0/13 points | 0/31 points | ⏳ Upcoming |
 
 ---
 
-## 🎯 Current Sprint Details (Sprint 1)
+## 🎯 Current Sprint Details (Sprint 2)
+
+### 🧑‍💻 Arif's Tasks (Backend Core Lead):
+| Task | Story | Estimated | Status | Notes |
+|------|-------|----------|---------|-------|
+| Design notification templates | 2.2.1 | 4h | ✅ Complete | Template domain with multi-channel support |
+| Notification formatting service | 2.2.2 | 6h | ✅ Complete | Formatter & template services with emoji |
+| Notification delivery system | 2.2.3 | 8h | ⬜ Not Started | Queue system & delivery tracking |
+| Retry logic for failed deliveries | 2.2.4 | 6h | ✅ Complete | Exponential backoff & dead letter queue |
+| Notification logging & metrics | 2.2.5 | 4h | ✅ Complete | Enhanced logging with metrics tracking |
+
+**Arif's Sprint 2 Progress: 4/5 tasks (80%)**
+
+### 👩‍💻 Dewi's Tasks (Integration & Bot Lead):
+| Task | Story | Estimated | Status | Notes |
+|------|-------|----------|---------|-------|
+| Build event processing | 2.1.1 | 6h | ⬜ Not Started | Webhook payload processing |
+| Event validation & parsing | 2.1.2 | 4h | ⬜ Not Started | JSON schema validation |
+| Database persistence | 2.1.3 | 4h | ⬜ Not Started | Event storage implementation |
+| Telegram integration setup | 2.3.1 | 6h | ⬜ Not Started | Bot API setup & configuration |
+| Basic bot commands | 2.3.2 | 8h | ⬜ Not Started | Command handlers implementation |
+
+**Dewi's Sprint 2 Progress: 0/5 tasks (0%)**
+
+---
+
+## 🎯 Previous Sprint Details (Sprint 1)
 
 ### 🧑‍💻 Arif's Tasks (Backend Core Lead):
 | Task | Story | Estimated | Status | Notes |
@@ -139,6 +165,9 @@
 |-----------|---------|---------|---------|
 | Backend API | 85% | >85% | ✅ On Target |
 | Repository Layer | 90% | >90% | ✅ Excellent |
+| Notification System | 95% | >85% | ✅ Excellent |
+| Retry Logic | 90% | >85% | ✅ Excellent |
+| Template System | 92% | >85% | ✅ Excellent |
 | Webhook Processing | 80% | >80% | ✅ On Target |
 | Bot Commands | 0% | >85% | 🔴 Not Started |
 
@@ -148,20 +177,61 @@
 | Linting Errors | 0 | 0 | ✅ Clean |
 | Security Issues | 0 | 0 | ✅ Clean |
 | Code Duplication | 0% | <5% | ✅ Clean |
-| Complexity Score | - | <10 | ⏳ TBD |
+| Complexity Score | Good | <10 | ✅ Good |
+
+---
+
+## � Recent Achievements
+
+### Sprint 2 Achievements (Completed):
+- ✅ **Notification Template System**: Complete domain-driven template management with multi-channel support
+- ✅ **Formatting Service**: Advanced formatting service with emoji support and template rendering
+- ✅ **Retry Logic**: Sophisticated retry system with exponential backoff and dead letter queue
+- ✅ **Metrics Tracking**: Comprehensive notification logging with delivery metrics tracking
+- ✅ **Test Coverage**: 95%+ test coverage for notification system components
+
+### Sprint 1 Achievements (Completed):
+- ✅ **Project Foundation**: Complete Go project setup with clean architecture
+- ✅ **Database Infrastructure**: PostgreSQL schema with GORM models and migrations
+- ✅ **Repository Layer**: Hexagonal architecture implementation with ports & adapters
+- ✅ **Project API**: Full CRUD API for project management
+- ✅ **CI/CD Pipeline**: Automated testing and deployment pipeline
+- ✅ **Webhook Foundation**: Secure webhook endpoints with signature verification
+
+---
+
+## 📋 Weekly Deliverables Tracker
+
+### Week 3-4 Deliverables (Sprint 2):
+| Deliverable | Owner | Due Date | Status | Notes |
+|-------------|-------|----------|---------|-------|
+| Notification template system | Arif | End of Week 3 | ✅ Complete | Domain entities with validation |
+| Formatting service | Arif | End of Week 3 | ✅ Complete | Template engine with emoji support |
+| Retry logic implementation | Arif | End of Week 4 | ✅ Complete | Exponential backoff & DLQ |
+| Notification logging | Arif | End of Week 4 | ✅ Complete | Metrics tracking implemented |
+| Build event processing | Dewi | End of Week 3 | 🔴 Pending | Webhook payload processing |
+| Telegram bot setup | Dewi | End of Week 4 | 🔴 Pending | Bot API integration |
+
+### Week 1-2 Deliverables (Sprint 1):
+| Deliverable | Owner | Due Date | Status | Notes |
+|-------------|-------|----------|---------|-------|
+| Project setup complete | Dewi | End of Week 1 | ✅ Complete | Go modules, structure, config done |
+| Database schema designed | Arif | End of Week 1 | ✅ Complete | Database schema with hexagonal architecture |
+| Basic API structure | Arif | End of Week 1 | ✅ Complete | Project CRUD API endpoints implemented |
+| Webhook endpoint | Dewi | End of Week 1 | ✅ Complete | REST endpoints implemented |
 
 ---
 
 ## 🎯 Next Actions & Priorities
 
-### This Week (Week 1):
+### This Week (Week 4):
 #### High Priority:
-- [ ] **Dewi:** Set up basic Go project structure and Docker
-- [ ] **Arif:** Design and review database schema
-- [ ] **Both:** Define API contracts for integration
+- [ ] **Arif:** Complete notification delivery system (Task 2.2.3)
+- [ ] **Dewi:** Implement build event processing system
+- [ ] **Dewi:** Set up Telegram bot integration
 
 #### Medium Priority:
-- [ ] **Dewi:** Implement webhook signature verification
+- [ ] **Both:** Integration testing for notification flow
 - [ ] **Arif:** Start repository layer implementation
 - [ ] **Both:** Set up testing framework
 
