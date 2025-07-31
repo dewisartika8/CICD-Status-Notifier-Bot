@@ -2,6 +2,7 @@ package port
 
 import (
 	"context"
+	"time"
 
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/notification/domain"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/shared/domain/value_objects"
@@ -131,4 +132,67 @@ type RetryConfigurationRepository interface {
 
 	// BulkCreate saves multiple retry configurations
 	BulkCreate(ctx context.Context, configs []*domain.RetryConfiguration) error
+}
+
+// DeliveryQueueRepository defines the interface for delivery queue persistence
+type DeliveryQueueRepository interface {
+	// Create saves a new queued notification
+	Create(ctx context.Context, notification *domain.QueuedNotification) error
+
+	// GetByID retrieves a queued notification by ID
+	GetByID(ctx context.Context, id value_objects.ID) (*domain.QueuedNotification, error)
+
+	// GetPendingNotifications retrieves pending notifications ready for processing
+	GetPendingNotifications(ctx context.Context, limit int) ([]*domain.QueuedNotification, error)
+
+	// GetPendingByPriority retrieves pending notifications ordered by priority
+	GetPendingByPriority(ctx context.Context, limit int) ([]*domain.QueuedNotification, error)
+
+	// GetFailedNotifications retrieves failed notifications that can be retried
+	GetFailedNotifications(ctx context.Context, limit int) ([]*domain.QueuedNotification, error)
+
+	// Update saves changes to an existing queued notification
+	Update(ctx context.Context, notification *domain.QueuedNotification) error
+
+	// UpdateStatus updates only the status and error message of a notification
+	UpdateStatus(ctx context.Context, id value_objects.ID, status domain.DeliveryStatus, errorMessage string) error
+
+	// Delete removes a queued notification
+	Delete(ctx context.Context, id value_objects.ID) error
+
+	// DeleteProcessedNotifications removes successfully delivered notifications older than specified duration
+	DeleteProcessedNotifications(ctx context.Context, olderThan time.Duration) error
+
+	// GetPendingCount returns the count of pending notifications
+	GetPendingCount(ctx context.Context) (int64, error)
+
+	// GetQueueStats returns queue statistics by status
+	GetQueueStats(ctx context.Context) (map[string]int64, error)
+}
+
+// RateLimiterRepository defines the interface for rate limiter persistence
+type RateLimiterRepository interface {
+	// GetEntry retrieves a rate limit entry
+	GetEntry(ctx context.Context, key string, channel domain.NotificationChannel) (*domain.RateLimitEntry, error)
+
+	// SetEntry saves or updates a rate limit entry
+	SetEntry(ctx context.Context, entry *domain.RateLimitEntry) error
+
+	// DeleteEntry removes a rate limit entry
+	DeleteEntry(ctx context.Context, key string, channel domain.NotificationChannel) error
+
+	// GetRule retrieves a rate limiting rule for a channel
+	GetRule(ctx context.Context, channel domain.NotificationChannel) (*domain.RateLimitRule, error)
+
+	// SetRule saves or updates a rate limiting rule
+	SetRule(ctx context.Context, rule *domain.RateLimitRule) error
+
+	// DeleteRule removes a rate limiting rule
+	DeleteRule(ctx context.Context, channel domain.NotificationChannel) error
+
+	// GetAllRules retrieves all rate limiting rules
+	GetAllRules(ctx context.Context) ([]*domain.RateLimitRule, error)
+
+	// CleanupExpiredEntries removes expired rate limit entries
+	CleanupExpiredEntries(ctx context.Context) error
 }
