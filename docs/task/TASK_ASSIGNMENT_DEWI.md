@@ -12,10 +12,10 @@
 | Sprint | Total Tasks | Story Points | Completed | In Progress | Not Started | Progress |
 |--------|-------------|--------------|-----------|-------------|-------------|----------|
 | Sprint 1 | 8 tasks | 11 points | ✅ 6 | ⬜ 0 | ⬜ 2 | 75% |
-| Sprint 2 | 8 tasks | 13 points | ⬜ 0 | ⬜ 0 | ⬜ 8 | 0% |
+| Sprint 2 | 8 tasks | 13 points | ✅ 5 | ⬜ 0 | ⬜ 3 | 62.5% |
 | Sprint 3 | 9 tasks | 16 points | ⬜ 0 | ⬜ 0 | ⬜ 9 | 0% |
 | Sprint 4 | 10 tasks | 25 points | ⬜ 0 | ⬜ 0 | ⬜ 10 | 0% |
-| **Total** | **35 tasks** | **65 points** | **6** | **0** | **29** | **9.2%** |
+| **Total** | **35 tasks** | **65 points** | **11** | **0** | **24** | **16.9%** |
 
 ---
 
@@ -152,41 +152,41 @@
 **Goal:** Implement project status query commands
 
 #### ✅ Task Checklist:
-- [ ] **Task 2.3.1:** Implement /status command for all projects
-  - Display overall project status
-  - Format status information clearly
-  - Handle cases with no projects
-  - **Estimated:** 4 hours | **Status:** Not Started
+- [x] **Task 2.3.1:** Implement /status command for all projects
+  - Display overall project status (**Done**)
+  - Format status information clearly (**Done**)
+  - Handle cases with no projects (**Done**)
+  - **Estimated:** 4 hours | **Status:** Complete
 
-- [ ] **Task 2.3.2:** Implement /status <project> for specific project
-  - Query specific project status
-  - Show detailed build information
-  - Handle project not found errors
-  - **Estimated:** 4 hours | **Status:** Not Started
+- [x] **Task 2.3.2:** Implement /status <project> for specific project
+  - Query specific project status (**Done**)
+  - Show detailed build information (**Done**)
+  - Handle project not found errors (**Done**)
+  - **Estimated:** 4 hours | **Status:** Complete
 
-- [ ] **Task 2.3.3:** Implement /projects command
-  - List all monitored projects
-  - Show project status summary
-  - Add pagination for many projects
-  - **Estimated:** 3 hours | **Status:** Not Started
+- [x] **Task 2.3.3:** Implement /projects command
+  - List all monitored projects (**Done**)
+  - Show project status summary (**Done**)
+  - Add pagination for many projects (**Done**)
+  - **Estimated:** 3 hours | **Status:** Complete
 
-- [ ] **Task 2.3.4:** Add error handling and response formatting
-  - Standardize error messages
-  - Create response templates
-  - Add emoji and formatting
-  - **Estimated:** 3 hours | **Status:** Not Started
+- [x] **Task 2.3.4:** Add error handling and response formatting
+  - Standardize error messages (**Done**)
+  - Create response templates (**Done**)
+  - Add emoji and formatting (**Done**)
+  - **Estimated:** 3 hours | **Status:** Complete
 
-- [ ] **Task 2.3.5:** Write bot command tests
-  - Unit tests for command handlers
-  - Mock Telegram API responses
-  - Test error scenarios
-  - **Estimated:** 6 hours | **Status:** Not Started
+- [x] **Task 2.3.5:** Write bot command tests
+  - Unit tests for command handlers (**Done**)
+  - Mock Telegram API responses (**Done**)
+  - Test error scenarios (**Done**)
+  - **Estimated:** 6 hours | **Status:** Complete
 
 ### 📋 Sprint 2 Deliverables for Dewi:
-- [ ] Working Telegram bot with basic commands
-- [ ] Integration with Arif's API endpoints
-- [ ] Command processing with error handling
-- [ ] Comprehensive test suite for bot functionality
+- [x] Working Telegram bot with basic commands
+- [x] Integration with Arif's API endpoints
+- [x] Command processing with error handling
+- [x] Comprehensive test suite for bot functionality
 
 ---
 

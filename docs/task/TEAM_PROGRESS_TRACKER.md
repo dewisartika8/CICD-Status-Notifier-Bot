@@ -11,31 +11,31 @@
 
 | Metric | Target | Current | Status |
 |--------|---------|---------|---------|
-| **Total Story Points** | 112 points | 35 completed | 🟡 In Progress |
+| **Total Story Points** | 112 points | 46 completed | 🟡 In Progress |
 | **Sprint Progress** | Sprint 1 | Complete | ✅ Complete |
 | **Code Coverage** | >85% | 85% | ✅ On Target |
 | **Test Cases** | 100+ tests | 75 written | 🟡 In Progress |
 | **API Endpoints** | 15+ endpoints | 8 implemented | 🟡 In Progress |
-| **Bot Commands** | 10+ commands | 3 implemented | 🟡 In Progress |
+| **Bot Commands** | 10+ commands | 8 implemented | ✅ On Target |
 
 ---
 
 ## 📅 Sprint Overview & Progress
 
 ### Current Sprint: **Sprint 2 - Notification System & Backend Services**
-**Duration:** Week 3-4 | **Status:** In Progress | **Progress:** 40%
+**Duration:** Week 3-4 | **Status:** 86% Complete | **Progress:** 86%
 
 | Developer | Story Points | Tasks Complete | In Progress | Not Started |
 |-----------|-------------|----------------|-------------|-------------|
 | **Arif** | 16 points | 4/5 tasks | 0 | 1 |
-| **Dewi** | 13 points | 0/5 tasks | 0 | 5 |
-| **Total** | 29 points | 4/10 tasks | 0 | 6 |
+| **Dewi** | 13 points | 5/5 tasks | 0 | 0 |
+| **Total** | 29 points | 9/10 tasks | 0 | 1 |
 
 ### Sprint History:
 | Sprint | Duration | Arif Progress | Dewi Progress | Team Velocity | Status |
 |--------|----------|---------------|---------------|---------------|---------|
 | Sprint 1 | Week 1-2 | 10/10 points | 11/11 points | 21/21 points | ✅ Complete |
-| Sprint 2 | Week 3-4 | 12/16 points | 0/13 points | 12/29 points | 🟡 In Progress |
+| Sprint 2 | Week 3-4 | 12/16 points | 13/13 points | 25/29 points | 🟡 In Progress |
 | Sprint 3 | Week 5-6 | 0/21 points | 0/10 points | 0/31 points | ⏳ Upcoming |
 | Sprint 4 | Week 7-8 | 0/18 points | 0/13 points | 0/31 points | ⏳ Upcoming |
 
@@ -57,13 +57,13 @@
 ### 👩‍💻 Dewi's Tasks (Integration & Bot Lead):
 | Task | Story | Estimated | Status | Notes |
 |------|-------|----------|---------|-------|
-| Build event processing | 2.1.1 | 6h | ⬜ Not Started | Webhook payload processing |
-| Event validation & parsing | 2.1.2 | 4h | ⬜ Not Started | JSON schema validation |
-| Database persistence | 2.1.3 | 4h | ⬜ Not Started | Event storage implementation |
-| Telegram integration setup | 2.3.1 | 6h | ⬜ Not Started | Bot API setup & configuration |
-| Basic bot commands | 2.3.2 | 8h | ⬜ Not Started | Command handlers implementation |
+| Implement /status command | 2.3.1 | 4h | ✅ Complete | All projects & specific project status |
+| Implement /projects command | 2.3.2 | 3h | ✅ Complete | List monitored projects with grouping |
+| Error handling & formatting | 2.3.3 | 3h | ✅ Complete | Standardized responses with emojis |
+| Response templates | 2.3.4 | 3h | ✅ Complete | Consistent message formatting |
+| Bot command tests | 2.3.5 | 6h | ✅ Complete | Unit tests with mocks |
 
-**Dewi's Sprint 2 Progress: 0/5 tasks (0%)**
+**Dewi's Sprint 2 Progress: 5/5 tasks (100%)**
 
 ---
 
@@ -353,5 +353,10 @@ _________________________________
 | 2.1.3 Basic commands        | ✅ Complete | 100%     |
 | 2.1.4 Bot webhook handling  | ✅ Complete | 100%     |
 | 2.1.5 Command validation    | ✅ Complete | 100%     |
+| 2.3.1 Status all projects   | ✅ Complete | 100%     |
+| 2.3.2 Status specific project| ✅ Complete | 100%     |
+| 2.3.3 Projects list command | ✅ Complete | 100%     |
+| 2.3.4 Error handling        | ✅ Complete | 100%     |
+| 2.3.5 Bot command tests     | ✅ Complete | 100%     |
 
-**Sprint 2 Story 2.1 Status:** ✅ Complete (5/5 tasks done)
+**Sprint 2 Story 2.1 & 2.3 Status:** ✅ Complete (10/10 tasks done)
