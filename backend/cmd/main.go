@@ -11,6 +11,7 @@ import (
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/repository/postgres"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/config"
 	bs "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/build/service"
+	subscription "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/notification/service/subscription"
 	ps "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/project/service"
 	ws "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/webhook/service"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/server/app"
@@ -54,6 +55,7 @@ func main() {
 	projectRepo := postgres.NewProjectRepository(db)
 	buildEventRepo := postgres.NewBuildEventRepository(db)
 	webhookEventRepo := postgres.NewWebhookEventRepository(db)
+	telegramSubscriptionRepo := postgres.NewTelegramSubscriptionRepository(db)
 
 	// Initialize services
 	projectService := ps.NewProjectService(ps.Dep{
@@ -61,6 +63,12 @@ func main() {
 	})
 	buildService := bs.NewBuildEventService(bs.Dep{
 		BuildEventRepo: buildEventRepo,
+	})
+
+	// Initialize telegram subscription service
+	telegramSubscriptionService := subscription.NewTelegramSubscriptionService(subscription.Dep{
+		TelegramRepo: telegramSubscriptionRepo,
+		Logger:       logger,
 	})
 
 	// Initialize crypto components
@@ -81,7 +89,7 @@ func main() {
 		Logger:         logger,
 	})
 	webhookHandler := webhook.NewWebhookHandler(webhookService, logger)
-	telegramHandler := telegram.NewTelegramHandler(cfg)
+	telegramHandler := telegram.NewTelegramHandler(cfg, telegramSubscriptionService, logger)
 
 	// run APP in http server
 	// inject all usecases here

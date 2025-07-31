@@ -178,6 +178,16 @@ type TelegramSubscriptionService interface {
 
 	// CheckSubscriptionExists checks if a subscription exists for a project and chat ID
 	CheckSubscriptionExists(ctx context.Context, projectID value_objects.ID, chatID int64) (bool, error)
+
+	// GetSubscriptionCount returns the count of subscriptions based on filters
+	GetSubscriptionCount(ctx context.Context, projectID *value_objects.ID, isActive *bool) (int64, error)
+
+	// Validation methods
+	ValidateUserPermissions(ctx context.Context, userID int64, projectID value_objects.ID, chatID int64) error
+	ValidateProjectExistence(ctx context.Context, projectID value_objects.ID) error
+	ValidateDuplicateSubscription(ctx context.Context, projectID value_objects.ID, chatID int64) error
+	ValidateChatID(ctx context.Context, chatID int64) error
+	ValidateSubscriptionParameters(ctx context.Context, projectID value_objects.ID, chatID int64, userID *int64) error
 }
 
 // NotificationSender defines the contract for sending notifications through different channels

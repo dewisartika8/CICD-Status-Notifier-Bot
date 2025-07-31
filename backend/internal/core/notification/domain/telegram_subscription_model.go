@@ -10,12 +10,15 @@ import (
 
 // TelegramSubscriptionModel represents the GORM model for telegram subscriptions
 type TelegramSubscriptionModel struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
-	ProjectID uuid.UUID `gorm:"type:uuid;not null;index:idx_telegram_subscriptions_project"`
-	ChatID    int64     `gorm:"type:bigint;not null;index:idx_telegram_subscriptions_chat"`
-	IsActive  bool      `gorm:"type:boolean;not null;default:true;index:idx_telegram_subscriptions_active"`
-	CreatedAt time.Time `gorm:"type:timestamp with time zone;not null;default:now()"`
-	UpdatedAt time.Time `gorm:"type:timestamp with time zone;not null;default:now()"`
+	ID         uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	ProjectID  uuid.UUID `gorm:"type:uuid;not null;index:idx_telegram_subscriptions_project"`
+	ChatID     int64     `gorm:"type:bigint;not null;index:idx_telegram_subscriptions_chat"`
+	UserID     *int64    `gorm:"type:bigint"`
+	Username   string    `gorm:"type:varchar(255)"`
+	EventTypes []string  `gorm:"type:text[];column:event_types"`
+	IsActive   bool      `gorm:"type:boolean;not null;default:true;index:idx_telegram_subscriptions_active"`
+	CreatedAt  time.Time `gorm:"type:timestamp with time zone;not null;default:now()"`
+	UpdatedAt  time.Time `gorm:"type:timestamp with time zone;not null;default:now()"`
 }
 
 // TableName returns the table name for the TelegramSubscriptionModel
@@ -47,12 +50,15 @@ func (tsm *TelegramSubscriptionModel) ToEntity() *TelegramSubscription {
 	projectID, _ := value_objects.NewIDFromString(tsm.ProjectID.String())
 
 	params := RestoreTelegramSubscriptionParams{
-		ID:        id,
-		ProjectID: projectID,
-		ChatID:    tsm.ChatID,
-		IsActive:  tsm.IsActive,
-		CreatedAt: value_objects.NewTimestampFromTime(tsm.CreatedAt),
-		UpdatedAt: value_objects.NewTimestampFromTime(tsm.UpdatedAt),
+		ID:         id,
+		ProjectID:  projectID,
+		ChatID:     tsm.ChatID,
+		UserID:     tsm.UserID,
+		Username:   tsm.Username,
+		EventTypes: tsm.EventTypes,
+		IsActive:   tsm.IsActive,
+		CreatedAt:  value_objects.NewTimestampFromTime(tsm.CreatedAt),
+		UpdatedAt:  value_objects.NewTimestampFromTime(tsm.UpdatedAt),
 	}
 
 	return RestoreTelegramSubscription(params)
@@ -69,6 +75,9 @@ func (tsm *TelegramSubscriptionModel) FromEntity(entity *TelegramSubscription) {
 	}
 
 	tsm.ChatID = entity.ChatID()
+	tsm.UserID = entity.UserID()
+	tsm.Username = entity.Username()
+	tsm.EventTypes = entity.EventTypes()
 	tsm.IsActive = entity.IsActive()
 	tsm.CreatedAt = entity.CreatedAt().ToTime()
 	tsm.UpdatedAt = entity.UpdatedAt().ToTime()

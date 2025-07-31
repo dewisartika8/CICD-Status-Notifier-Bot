@@ -71,29 +71,34 @@ func (s *notificationLogService) CreateNotificationForBuildEvent(
 		"project_id":     projectID.String(),
 	}).Info("Creating notifications for build event")
 
-	// Get telegram subscriptions for this project
-	subscriptions, err := s.TelegramSubscriptionRepo.GetByProjectID(ctx, projectID)
+	// Get active telegram subscriptions for this project
+	subscriptions, err := s.TelegramSubscriptionRepo.GetActiveSubscriptionsByProject(ctx, projectID)
 	if err != nil {
-		s.Logger.WithError(err).Error("Failed to get telegram subscriptions")
-		return nil, fmt.Errorf(domain.ErrMsgGetTelegramSubscriptions, err)
+		s.Logger.WithError(err).Error("Failed to get active subscriptions for project")
+		return nil, fmt.Errorf("failed to get active subscriptions for project: %w", err)
 	}
 
 	var notifications []*domain.NotificationLog
 
-	// Create notification for each subscription
+	// Create notification for each active subscription
 	for _, subscription := range subscriptions {
+		// Only create notifications for active subscriptions
+		if !subscription.IsActive() {
+			continue
+		}
+
 		// Create notification log for telegram
 		log, err := s.CreateNotificationLog(
 			ctx,
 			buildEventID,
 			projectID,
 			domain.NotificationChannelTelegram,
-			fmt.Sprintf("%d", subscription.ChatID()),
+			subscription.GetChatIDString(),
 			message,
 		)
 		if err != nil {
 			s.Logger.WithError(err).WithField("chat_id", subscription.ChatID()).Error("Failed to create notification log")
-			continue
+			return nil, fmt.Errorf("failed to create notification log for chat %d: %w", subscription.ChatID(), err)
 		}
 
 		notifications = append(notifications, log)

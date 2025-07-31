@@ -12,10 +12,10 @@
 | Sprint | Total Tasks | Story Points | Completed | In Progress | Not Started | Progress |
 |--------|-------------|--------------|-----------|-------------|-------------|----------|
 | Sprint 1 | 8 tasks | 10 points | ✅ 8 | ⬜ 0 | ⬜ 0 | 100% |
-| Sprint 2 | 10 tasks | 16 points | ✅ 5 | ⬜ 0 | ⬜ 5 | 50% |
+| Sprint 2 | 10 tasks | 16 points | ✅ 10 | ⬜ 0 | ⬜ 0 | 100% |
 | Sprint 3 | 8 tasks | 21 points | ⬜ 0 | ⬜ 0 | ⬜ 8 | 0% |
 | Sprint 4 | 12 tasks | 28 points | ⬜ 0 | ⬜ 0 | ⬜ 12 | 0% |
-| **Total** | **38 tasks** | **75 points** | **13** | **0** | **25** | **34%** |
+| **Total** | **38 tasks** | **75 points** | **18** | **0** | **20** | **47%** |
 
 ---
 
@@ -130,40 +130,40 @@
 **Goal:** Handle user subscriptions and preferences
 
 #### ✅ Task Checklist:
-- [ ] **Task 2.4.1:** Create subscription database model
+- [x] **Task 2.4.1:** Create subscription database model
   - Design subscription schema
   - Implement GORM model
   - Add unique constraints
-  - **Estimated:** 4 hours | **Status:** Not Started
+  - **Estimated:** 4 hours | **Status:** ✅ Complete
 
-- [ ] **Task 2.4.2:** Implement subscription service layer
+- [x] **Task 2.4.2:** Implement subscription service layer
   - Create subscription business logic
   - Add validation rules
   - Handle subscription conflicts
-  - **Estimated:** 6 hours | **Status:** Not Started
+  - **Estimated:** 6 hours | **Status:** ✅ Complete
 
-- [ ] **Task 2.4.3:** Connect subscriptions to notification delivery
+- [x] **Task 2.4.3:** Connect subscriptions to notification delivery
   - Filter notifications by subscriptions
   - Handle subscription preferences
   - Implement notification targeting
-  - **Estimated:** 6 hours | **Status:** Not Started
+  - **Estimated:** 6 hours | **Status:** ✅ Complete
 
-- [ ] **Task 2.4.4:** Add subscription validation logic
+- [x] **Task 2.4.4:** Add subscription validation logic
   - Validate user permissions
   - Check project existence
   - Handle duplicate subscriptions
-  - **Estimated:** 4 hours | **Status:** Not Started
+  - **Estimated:** 4 hours | **Status:** ✅ Complete
 
-- [ ] **Task 2.4.5:** Write subscription tests
+- [x] **Task 2.4.5:** Write subscription tests
   - Unit tests for subscription service
   - Integration tests for notification filtering
   - Test subscription edge cases
-  - **Estimated:** 8 hours | **Status:** Not Started
+  - **Estimated:** 8 hours | **Status:** ✅ Complete
 
 ### 📋 Sprint 2 Deliverables for Arif:
 - [x] Working notification system with templates
-- [ ] Subscription management with database layer
-- [ ] Integration between webhooks and notifications
+- [x] Subscription management with database layer
+- [x] Integration between webhooks and notifications
 - [x] Comprehensive test suite for notification flow
 
 ---

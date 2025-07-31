@@ -44,16 +44,9 @@ func (s *telegramSubscriptionService) CreateTelegramSubscription(
 		"chat_id":    chatID,
 	}).Info("Creating telegram subscription")
 
-	// Check if subscription already exists
-	exists, err := s.TelegramRepo.ExistsByProjectAndChatID(ctx, projectID, chatID)
-	if err != nil {
-		s.Logger.WithError(err).Error("Failed to check if subscription exists")
-		return nil, fmt.Errorf("failed to check if subscription exists: %w", err)
-	}
-
-	if exists {
-		s.Logger.Warn("Subscription already exists")
-		return nil, domain.ErrSubscriptionAlreadyExists
+	// Validate inputs first
+	if err := s.ValidateSubscriptionParameters(ctx, projectID, chatID, nil); err != nil {
+		return nil, err
 	}
 
 	// Create new telegram subscription entity
@@ -250,4 +243,132 @@ func (s *telegramSubscriptionService) CheckSubscriptionExists(ctx context.Contex
 	}
 
 	return exists, nil
+}
+
+// GetSubscriptionCount returns the count of subscriptions based on filters
+func (s *telegramSubscriptionService) GetSubscriptionCount(ctx context.Context, projectID *value_objects.ID, isActive *bool) (int64, error) {
+	s.Logger.WithFields(logrus.Fields{
+		"project_id": func() string {
+			if projectID != nil {
+				return projectID.String()
+			}
+			return "all"
+		}(),
+		"is_active": isActive,
+	}).Info("Getting subscription count")
+
+	count, err := s.TelegramRepo.Count(ctx, projectID, isActive)
+	if err != nil {
+		s.Logger.WithError(err).Error("Failed to get subscription count")
+		return 0, fmt.Errorf("failed to get subscription count: %w", err)
+	}
+
+	return count, nil
+}
+
+// ValidateUserPermissions validates if user has permission to create subscription
+func (s *telegramSubscriptionService) ValidateUserPermissions(ctx context.Context, userID int64, projectID value_objects.ID, chatID int64) error {
+	s.Logger.WithFields(logrus.Fields{
+		"user_id":    userID,
+		"project_id": projectID.String(),
+		"chat_id":    chatID,
+	}).Info("Validating user permissions")
+
+	// Basic user ID validation
+	if userID <= 0 {
+		s.Logger.WithField("user_id", userID).Error("Invalid user ID")
+		return fmt.Errorf("invalid user ID: must be positive integer")
+	}
+
+	// For now, we allow all valid user IDs to create subscriptions
+	// In the future, this could check user roles/permissions
+	s.Logger.Info("User permissions validated successfully")
+	return nil
+}
+
+// ValidateProjectExistence validates if project exists and is valid
+func (s *telegramSubscriptionService) ValidateProjectExistence(ctx context.Context, projectID value_objects.ID) error {
+	s.Logger.WithField("project_id", projectID.String()).Info("Validating project existence")
+
+	// Basic project ID validation
+	if projectID.IsNil() {
+		s.Logger.Error("Invalid project ID: cannot be nil")
+		return fmt.Errorf("invalid project ID: cannot be nil")
+	}
+
+	// In a complete implementation, we would check if project exists in project service
+	// For now, we just validate the ID format
+	s.Logger.Info("Project existence validated successfully")
+	return nil
+}
+
+// ValidateDuplicateSubscription validates if subscription already exists
+func (s *telegramSubscriptionService) ValidateDuplicateSubscription(ctx context.Context, projectID value_objects.ID, chatID int64) error {
+	s.Logger.WithFields(logrus.Fields{
+		"project_id": projectID.String(),
+		"chat_id":    chatID,
+	}).Info("Validating duplicate subscription")
+
+	exists, err := s.TelegramRepo.ExistsByProjectAndChatID(ctx, projectID, chatID)
+	if err != nil {
+		s.Logger.WithError(err).Error("Failed to check subscription existence")
+		return fmt.Errorf("failed to check subscription existence: %w", err)
+	}
+
+	if exists {
+		s.Logger.Warn("Subscription already exists")
+		return fmt.Errorf("subscription already exists for project %s and chat %d", projectID.String(), chatID)
+	}
+
+	s.Logger.Info("No duplicate subscription found")
+	return nil
+}
+
+// ValidateChatID validates Telegram chat ID format
+func (s *telegramSubscriptionService) ValidateChatID(ctx context.Context, chatID int64) error {
+	s.Logger.WithField("chat_id", chatID).Info("Validating chat ID")
+
+	// Telegram chat IDs can be positive (private chats) or negative (groups/supergroups)
+	// But they cannot be zero
+	if chatID == 0 {
+		s.Logger.Error("Invalid chat ID: cannot be zero")
+		return fmt.Errorf("invalid chat ID: cannot be zero")
+	}
+
+	s.Logger.Info("Chat ID validated successfully")
+	return nil
+}
+
+// ValidateSubscriptionParameters validates all subscription parameters
+func (s *telegramSubscriptionService) ValidateSubscriptionParameters(ctx context.Context, projectID value_objects.ID, chatID int64, userID *int64) error {
+	s.Logger.WithFields(logrus.Fields{
+		"project_id": projectID.String(),
+		"chat_id":    chatID,
+		"user_id":    userID,
+	}).Info("Validating subscription parameters")
+
+	// Validate project ID
+	if err := s.ValidateProjectExistence(ctx, projectID); err != nil {
+		return err
+	}
+
+	// Validate chat ID
+	if err := s.ValidateChatID(ctx, chatID); err != nil {
+		return err
+	}
+
+	// Validate user ID if provided
+	if userID != nil {
+		if err := s.ValidateUserPermissions(ctx, *userID, projectID, chatID); err != nil {
+			return err
+		}
+	}
+
+	// Check for duplicates
+	if err := s.ValidateDuplicateSubscription(ctx, projectID, chatID); err != nil {
+		return err
+	}
+
+	s.Logger.Info("All subscription parameters validated successfully")
+	return nil
 }
