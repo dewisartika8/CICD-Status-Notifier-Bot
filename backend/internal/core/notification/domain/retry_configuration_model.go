@@ -4,21 +4,22 @@ import (
 	"time"
 
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/shared/domain/value_objects"
+	"github.com/google/uuid"
 )
 
 // RetryConfigurationModel represents the database model for retry configurations
 type RetryConfigurationModel struct {
-	ID               string    `gorm:"column:id;primaryKey" json:"id"`
-	ProjectID        string    `gorm:"column:project_id;not null" json:"project_id"`
-	Channel          string    `gorm:"column:channel;not null" json:"channel"`
-	MaxRetries       int       `gorm:"column:max_retries;not null;default:3" json:"max_retries"`
-	BaseDelaySeconds int       `gorm:"column:base_delay_seconds;not null;default:5" json:"base_delay_seconds"`
-	MaxDelaySeconds  int       `gorm:"column:max_delay_seconds;not null;default:300" json:"max_delay_seconds"`
-	BackoffFactor    float64   `gorm:"column:backoff_factor;not null;default:2.0" json:"backoff_factor"`
-	RetryableErrors  []string  `gorm:"column:retryable_errors;type:text[]" json:"retryable_errors"`
-	IsActive         bool      `gorm:"column:is_active;default:true" json:"is_active"`
-	CreatedAt        time.Time `gorm:"column:created_at;autoCreateTime" json:"created_at"`
-	UpdatedAt        time.Time `gorm:"column:updated_at;autoUpdateTime" json:"updated_at"`
+	ID               uuid.UUID `gorm:"column:id;primaryKey;type:uuid;default:gen_random_uuid()"`
+	ProjectID        uuid.UUID `gorm:"column:project_id;not null;type:uuid"`
+	Channel          string    `gorm:"column:channel;not null"`
+	MaxRetries       int       `gorm:"column:max_retries;not null;default:3"`
+	BaseDelaySeconds int       `gorm:"column:base_delay_seconds;not null;default:5"`
+	MaxDelaySeconds  int       `gorm:"column:max_delay_seconds;not null;default:300"`
+	BackoffFactor    float64   `gorm:"column:backoff_factor;not null;default:2.0;type:decimal(3,2)"`
+	RetryableErrors  []string  `gorm:"column:retryable_errors;type:text[]"`
+	IsActive         bool      `gorm:"column:is_active;default:true"`
+	CreatedAt        time.Time `gorm:"column:created_at;type:timestamp with time zone;default:current_timestamp"`
+	UpdatedAt        time.Time `gorm:"column:updated_at;type:timestamp with time zone;default:current_timestamp"`
 }
 
 // TableName returns the table name for retry configurations
@@ -28,7 +29,7 @@ func (RetryConfigurationModel) TableName() string {
 
 // ToEntity converts the model to domain entity
 func (m *RetryConfigurationModel) ToEntity() *RetryConfiguration {
-	id, _ := value_objects.NewIDFromString(m.ID)
+	id, _ := value_objects.NewIDFromString(m.ID.String())
 	baseDelay := time.Duration(m.BaseDelaySeconds) * time.Second
 	maxDelay := time.Duration(m.MaxDelaySeconds) * time.Second
 	createdAt := value_objects.NewTimestampFromTime(m.CreatedAt)
@@ -53,14 +54,20 @@ func (m *RetryConfigurationModel) ToEntity() *RetryConfiguration {
 
 // FromEntity converts domain entity to model
 func (m *RetryConfigurationModel) FromEntity(config *RetryConfiguration) {
-	m.ID = config.ID().String()
-	m.ProjectID = "" // This field doesn't exist in the current domain
-	m.Channel = ""   // This field doesn't exist in the current domain
+	// Parse UUID from string
+	if id, err := uuid.Parse(config.ID().String()); err == nil {
+		m.ID = id
+	}
+
+	// Note: ProjectID and Channel don't exist in current domain entity
+	// These would need to be passed separately or added to the domain
+	m.ProjectID = uuid.New() // Placeholder
+	m.Channel = "telegram"   // Default value
 	m.MaxRetries = config.MaxRetryAttempts()
 	m.BaseDelaySeconds = int(config.InitialRetryDelay().Seconds())
 	m.MaxDelaySeconds = int(config.MaxRetryDelay().Seconds())
 	m.BackoffFactor = config.RetryDelayMultiplier()
-	m.RetryableErrors = []string{} // This field doesn't exist in the current domain
+	m.RetryableErrors = []string{} // Default empty array
 	m.IsActive = config.IsActive()
 	m.CreatedAt = config.CreatedAt().ToTime()
 	m.UpdatedAt = config.UpdatedAt().ToTime()

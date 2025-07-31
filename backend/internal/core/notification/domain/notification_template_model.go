@@ -4,18 +4,19 @@ import (
 	"time"
 
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/shared/domain/value_objects"
+	"github.com/google/uuid"
 )
 
 // NotificationTemplateModel represents the database model for notification templates
 type NotificationTemplateModel struct {
-	ID           string    `gorm:"column:id;primaryKey" json:"id"`
+	ID           uuid.UUID `gorm:"column:id;primaryKey;type:uuid;default:gen_random_uuid()"`
 	TemplateType string    `gorm:"column:template_type;not null" json:"template_type"`
 	Channel      string    `gorm:"column:channel;not null" json:"channel"`
 	Subject      string    `gorm:"column:subject;not null" json:"subject"`
 	BodyTemplate string    `gorm:"column:body_template;not null" json:"body_template"`
 	IsActive     bool      `gorm:"column:is_active;default:true" json:"is_active"`
-	CreatedAt    time.Time `gorm:"column:created_at;autoCreateTime" json:"created_at"`
-	UpdatedAt    time.Time `gorm:"column:updated_at;autoUpdateTime" json:"updated_at"`
+	CreatedAt    time.Time `gorm:"column:created_at;type:timestamp with time zone;default:current_timestamp" json:"created_at"`
+	UpdatedAt    time.Time `gorm:"column:updated_at;type:timestamp with time zone;default:current_timestamp" json:"updated_at"`
 }
 
 // TableName returns the table name for notification templates
@@ -25,7 +26,7 @@ func (NotificationTemplateModel) TableName() string {
 
 // ToEntity converts the model to domain entity
 func (m *NotificationTemplateModel) ToEntity() *NotificationTemplate {
-	id, _ := value_objects.NewIDFromString(m.ID)
+	id, _ := value_objects.NewIDFromString(m.ID.String())
 	templateType := NotificationTemplateType(m.TemplateType)
 	channel := NotificationChannel(m.Channel)
 	createdAt := value_objects.NewTimestampFromTime(m.CreatedAt)
@@ -47,7 +48,11 @@ func (m *NotificationTemplateModel) ToEntity() *NotificationTemplate {
 
 // FromEntity converts domain entity to model
 func (m *NotificationTemplateModel) FromEntity(template *NotificationTemplate) {
-	m.ID = template.ID().String()
+	// Parse UUID from string
+	if id, err := uuid.Parse(template.ID().String()); err == nil {
+		m.ID = id
+	}
+
 	m.TemplateType = string(template.TemplateType())
 	m.Channel = string(template.Channel())
 	m.Subject = template.Subject()

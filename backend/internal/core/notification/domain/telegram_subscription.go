@@ -9,23 +9,29 @@ import (
 
 // TelegramSubscription represents a Telegram subscription domain entity
 type TelegramSubscription struct {
-	id        value_objects.ID
-	projectID value_objects.ID
-	chatID    int64
-	isActive  bool
-	createdAt value_objects.Timestamp
-	updatedAt value_objects.Timestamp
+	id         value_objects.ID
+	projectID  value_objects.ID
+	chatID     int64
+	userID     *int64
+	username   string
+	eventTypes []string
+	isActive   bool
+	createdAt  value_objects.Timestamp
+	updatedAt  value_objects.Timestamp
 }
 
 // NewTelegramSubscription creates a new telegram subscription entity
 func NewTelegramSubscription(projectID value_objects.ID, chatID int64) (*TelegramSubscription, error) {
 	subscription := &TelegramSubscription{
-		id:        value_objects.NewID(),
-		projectID: projectID,
-		chatID:    chatID,
-		isActive:  true,
-		createdAt: value_objects.NewTimestamp(),
-		updatedAt: value_objects.NewTimestamp(),
+		id:         value_objects.NewID(),
+		projectID:  projectID,
+		chatID:     chatID,
+		userID:     nil,
+		username:   "",
+		eventTypes: []string{},
+		isActive:   true,
+		createdAt:  value_objects.NewTimestamp(),
+		updatedAt:  value_objects.NewTimestamp(),
 	}
 
 	if err := subscription.validate(); err != nil {
@@ -38,23 +44,29 @@ func NewTelegramSubscription(projectID value_objects.ID, chatID int64) (*Telegra
 // RestoreTelegramSubscription restores a telegram subscription from persistence
 func RestoreTelegramSubscription(params RestoreTelegramSubscriptionParams) *TelegramSubscription {
 	return &TelegramSubscription{
-		id:        params.ID,
-		projectID: params.ProjectID,
-		chatID:    params.ChatID,
-		isActive:  params.IsActive,
-		createdAt: params.CreatedAt,
-		updatedAt: params.UpdatedAt,
+		id:         params.ID,
+		projectID:  params.ProjectID,
+		chatID:     params.ChatID,
+		userID:     params.UserID,
+		username:   params.Username,
+		eventTypes: params.EventTypes,
+		isActive:   params.IsActive,
+		createdAt:  params.CreatedAt,
+		updatedAt:  params.UpdatedAt,
 	}
 }
 
 // RestoreTelegramSubscriptionParams holds parameters for restoring a telegram subscription
 type RestoreTelegramSubscriptionParams struct {
-	ID        value_objects.ID
-	ProjectID value_objects.ID
-	ChatID    int64
-	IsActive  bool
-	CreatedAt value_objects.Timestamp
-	UpdatedAt value_objects.Timestamp
+	ID         value_objects.ID
+	ProjectID  value_objects.ID
+	ChatID     int64
+	UserID     *int64
+	Username   string
+	EventTypes []string
+	IsActive   bool
+	CreatedAt  value_objects.Timestamp
+	UpdatedAt  value_objects.Timestamp
 }
 
 // ID returns the subscription ID
@@ -70,6 +82,21 @@ func (ts *TelegramSubscription) ProjectID() value_objects.ID {
 // ChatID returns the Telegram chat ID
 func (ts *TelegramSubscription) ChatID() int64 {
 	return ts.chatID
+}
+
+// UserID returns the Telegram user ID
+func (ts *TelegramSubscription) UserID() *int64 {
+	return ts.userID
+}
+
+// Username returns the Telegram username
+func (ts *TelegramSubscription) Username() string {
+	return ts.username
+}
+
+// EventTypes returns the subscribed event types
+func (ts *TelegramSubscription) EventTypes() []string {
+	return ts.eventTypes
 }
 
 // IsActive returns whether the subscription is active

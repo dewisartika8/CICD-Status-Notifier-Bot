@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/shared/domain/value_objects"
@@ -12,17 +13,17 @@ import (
 type NotificationLogModel struct {
 	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
 	BuildEventID uuid.UUID  `gorm:"type:uuid;not null;index:idx_notification_logs_build_event"`
-	ProjectID    uuid.UUID  `gorm:"type:uuid;not null;index:idx_notification_logs_project"`
-	Channel      string     `gorm:"type:varchar(20);not null;index:idx_notification_logs_channel"`
-	Recipient    string     `gorm:"type:varchar(255);not null"`
-	Message      string     `gorm:"type:text;not null"`
+	ChatID       int64      `gorm:"type:bigint;not null;index:idx_notification_logs_chat_id"`
+	MessageID    *int       `gorm:"type:integer"`
 	Status       string     `gorm:"type:varchar(20);not null;index:idx_notification_logs_status"`
 	ErrorMessage string     `gorm:"type:text"`
-	RetryCount   int        `gorm:"type:int;not null;default:0"`
-	MessageID    *string    `gorm:"type:varchar(255)"` // External message ID (e.g., Telegram message ID)
-	SentAt       *time.Time `gorm:"type:timestamptz"`
-	CreatedAt    time.Time  `gorm:"type:timestamptz;not null;default:now();index:idx_notification_logs_created_at"`
-	UpdatedAt    time.Time  `gorm:"type:timestamptz;not null;default:now()"`
+	SentAt       *time.Time `gorm:"type:timestamp with time zone"`
+	CreatedAt    time.Time  `gorm:"type:timestamp with time zone;not null;default:now();index:idx_notification_logs_created_at"`
+
+	// Additional columns from migration 002
+	RetryCount int        `gorm:"type:integer;not null;default:0;column:retry_count"`
+	Channel    string     `gorm:"type:varchar(50);column:channel"`
+	TemplateID *uuid.UUID `gorm:"type:uuid;column:template_id"`
 }
 
 // TableName returns the table name for the NotificationLogModel
@@ -36,15 +37,12 @@ func (nlm *NotificationLogModel) BeforeCreate(tx *gorm.DB) error {
 	if nlm.CreatedAt.IsZero() {
 		nlm.CreatedAt = now
 	}
-	if nlm.UpdatedAt.IsZero() {
-		nlm.UpdatedAt = now
-	}
 	return nil
 }
 
 // BeforeUpdate hook to update timestamp
 func (nlm *NotificationLogModel) BeforeUpdate(tx *gorm.DB) error {
-	nlm.UpdatedAt = time.Now()
+	// No UpdatedAt field in current schema
 	return nil
 }
 
@@ -52,21 +50,23 @@ func (nlm *NotificationLogModel) BeforeUpdate(tx *gorm.DB) error {
 func (nlm *NotificationLogModel) ToEntity() *NotificationLog {
 	id, _ := value_objects.NewIDFromString(nlm.ID.String())
 	buildEventID, _ := value_objects.NewIDFromString(nlm.BuildEventID.String())
-	projectID, _ := value_objects.NewIDFromString(nlm.ProjectID.String())
+	// Note: ProjectID is not in the current database schema but exists in domain
+	// For now, we'll generate a default project ID
+	projectID := value_objects.NewID()
 
 	params := RestoreNotificationLogParams{
 		ID:           id,
 		BuildEventID: buildEventID,
 		ProjectID:    projectID,
 		Channel:      NotificationChannel(nlm.Channel),
-		Recipient:    nlm.Recipient,
-		Message:      nlm.Message,
+		Recipient:    string(nlm.ChatID), // Convert ChatID to string as recipient
+		Message:      "Notification",     // Default message since not stored in DB
 		Status:       NotificationStatus(nlm.Status),
 		ErrorMessage: nlm.ErrorMessage,
 		RetryCount:   nlm.RetryCount,
-		MessageID:    nlm.MessageID,
+		MessageID:    convertIntToStringPointer(nlm.MessageID),
 		CreatedAt:    value_objects.NewTimestampFromTime(nlm.CreatedAt),
-		UpdatedAt:    value_objects.NewTimestampFromTime(nlm.UpdatedAt),
+		UpdatedAt:    value_objects.NewTimestampFromTime(nlm.CreatedAt), // Use CreatedAt since no UpdatedAt in DB
 	}
 
 	if nlm.SentAt != nil {
@@ -74,7 +74,21 @@ func (nlm *NotificationLogModel) ToEntity() *NotificationLog {
 		params.SentAt = &sentAt
 	}
 
+	if nlm.TemplateID != nil {
+		templateID, _ := value_objects.NewIDFromString(nlm.TemplateID.String())
+		params.TemplateID = &templateID
+	}
+
 	return RestoreNotificationLog(params)
+}
+
+// convertIntToStringPointer converts *int to *string
+func convertIntToStringPointer(i *int) *string {
+	if i == nil {
+		return nil
+	}
+	str := string(rune(*i))
+	return &str
 }
 
 // FromEntity converts domain entity to GORM model
@@ -86,22 +100,37 @@ func (nlm *NotificationLogModel) FromEntity(entity *NotificationLog) {
 	if buildEventID, err := uuid.Parse(entity.BuildEventID().String()); err == nil {
 		nlm.BuildEventID = buildEventID
 	}
-	if projectID, err := uuid.Parse(entity.ProjectID().String()); err == nil {
-		nlm.ProjectID = projectID
+
+	// Convert recipient string back to ChatID (assuming it's a number)
+	if chatID, err := strconv.ParseInt(entity.Recipient(), 10, 64); err == nil {
+		nlm.ChatID = chatID
 	}
 
 	nlm.Channel = string(entity.Channel())
-	nlm.Recipient = entity.Recipient()
-	nlm.Message = entity.Message()
 	nlm.Status = string(entity.Status())
 	nlm.ErrorMessage = entity.ErrorMessage()
 	nlm.RetryCount = entity.RetryCount()
-	nlm.MessageID = entity.MessageID()
+	nlm.MessageID = convertStringToIntPointer(entity.MessageID())
 	nlm.CreatedAt = entity.CreatedAt().ToTime()
-	nlm.UpdatedAt = entity.UpdatedAt().ToTime()
 
 	if entity.SentAt() != nil {
 		sentAtTime := entity.SentAt().ToTime()
 		nlm.SentAt = &sentAtTime
 	}
+
+	if entity.TemplateID() != nil {
+		templateID, _ := uuid.Parse(entity.TemplateID().String())
+		nlm.TemplateID = &templateID
+	}
+}
+
+// convertStringToIntPointer converts *string to *int
+func convertStringToIntPointer(s *string) *int {
+	if s == nil {
+		return nil
+	}
+	if i, err := strconv.Atoi(*s); err == nil {
+		return &i
+	}
+	return nil
 }
