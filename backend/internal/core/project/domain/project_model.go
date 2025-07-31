@@ -13,8 +13,8 @@ type ProjectModel struct {
 	Name           string    `gorm:"uniqueIndex;not null;size:255"`
 	RepositoryURL  string    `gorm:"not null;size:500"`
 	WebhookSecret  string    `gorm:"size:255"`
-	TelegramChatID *int64    `gorm:"index"`
-	Status         string    `gorm:"not null;default:'active';size:20"`
+	TelegramChatID *int64    `gorm:"column:telegram_chat_id;index"`
+	IsActive       bool      `gorm:"column:is_active;not null;default:true"`
 	CreatedAt      time.Time `gorm:"type:timestamp with time zone;default:now()"`
 	UpdatedAt      time.Time `gorm:"type:timestamp with time zone;default:now()"`
 }
@@ -41,12 +41,20 @@ func (m *ProjectModel) ToEntity() (*Project, error) {
 		RepositoryURL:  m.RepositoryURL,
 		WebhookSecret:  m.WebhookSecret,
 		TelegramChatID: m.TelegramChatID,
-		Status:         ProjectStatus(m.Status),
+		Status:         mapIsActiveToStatus(m.IsActive),
 		CreatedAt:      createdAt,
 		UpdatedAt:      updatedAt,
 	}
 
 	return NewProjectFromDB(dbData), nil
+}
+
+// mapIsActiveToStatus converts boolean IsActive to ProjectStatus
+func mapIsActiveToStatus(isActive bool) ProjectStatus {
+	if isActive {
+		return ProjectStatus("active")
+	}
+	return ProjectStatus("inactive")
 }
 
 // FromEntity converts domain entity to database model
@@ -60,7 +68,8 @@ func (m *ProjectModel) FromEntity(project *Project) {
 	m.RepositoryURL = project.RepositoryURL()
 	m.WebhookSecret = project.WebhookSecret()
 	m.TelegramChatID = project.TelegramChatID()
-	m.Status = string(project.Status())
+	// Map Status to IsActive boolean
+	m.IsActive = project.Status() == ProjectStatus("active")
 	m.CreatedAt = project.CreatedAt().ToTime()
 	m.UpdatedAt = project.UpdatedAt().ToTime()
 }

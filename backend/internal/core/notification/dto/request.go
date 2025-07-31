@@ -164,3 +164,45 @@ func (req CreateNotificationLogRequest) ToCreateNotificationLogParams() (value_o
 
 	return buildEventID, projectID, req.Channel, req.Recipient, req.Message, nil
 }
+
+// CreateRetryConfigurationRequest represents the request to create a retry configuration
+type CreateRetryConfigurationRequest struct {
+	MaxRetryAttempts         int                        `json:"max_retry_attempts" validate:"required,min=0,max=10"`
+	InitialRetryDelay        time.Duration              `json:"initial_retry_delay" validate:"required"`
+	MaxRetryDelay            time.Duration              `json:"max_retry_delay" validate:"required"`
+	RetryTimeoutDuration     time.Duration              `json:"retry_timeout_duration" validate:"required"`
+	RetryDelayMultiplier     float64                    `json:"retry_delay_multiplier" validate:"required,min=1.0"`
+	EnableExponentialBackoff bool                       `json:"enable_exponential_backoff"`
+	EnableDeadLetterQueue    bool                       `json:"enable_dead_letter_queue"`
+	Channel                  domain.NotificationChannel `json:"channel,omitempty"`
+}
+
+// UpdateRetryConfigurationRequest represents the request to update a retry configuration
+type UpdateRetryConfigurationRequest struct {
+	MaxRetryAttempts         *int           `json:"max_retry_attempts,omitempty" validate:"omitempty,min=0,max=10"`
+	InitialRetryDelay        *time.Duration `json:"initial_retry_delay,omitempty"`
+	MaxRetryDelay            *time.Duration `json:"max_retry_delay,omitempty"`
+	RetryTimeoutDuration     *time.Duration `json:"retry_timeout_duration,omitempty"`
+	RetryDelayMultiplier     *float64       `json:"retry_delay_multiplier,omitempty" validate:"omitempty,min=1.0"`
+	EnableExponentialBackoff *bool          `json:"enable_exponential_backoff,omitempty"`
+	EnableDeadLetterQueue    *bool          `json:"enable_dead_letter_queue,omitempty"`
+}
+
+// ProcessRetryableNotificationRequest represents a request to process a retryable notification
+type ProcessRetryableNotificationRequest struct {
+	NotificationID  value_objects.ID           `json:"notification_id" validate:"required"`
+	Channel         domain.NotificationChannel `json:"channel" validate:"required"`
+	AttemptCount    int                        `json:"attempt_count" validate:"required,min=1"`
+	LastError       error                      `json:"last_error"`
+	OriginalPayload map[string]interface{}     `json:"original_payload"`
+	ScheduledAt     *time.Time                 `json:"scheduled_at,omitempty"`
+}
+
+// ProcessRetryableNotificationResponse represents the response from processing a retryable notification
+type ProcessRetryableNotificationResponse struct {
+	ShouldRetry        bool                       `json:"should_retry"`
+	NextAttemptAt      *time.Time                 `json:"next_attempt_at,omitempty"`
+	RetryDelay         time.Duration              `json:"retry_delay"`
+	SendToDeadLetter   bool                       `json:"send_to_dead_letter"`
+	RetryConfiguration *domain.RetryConfiguration `json:"retry_configuration"`
+}

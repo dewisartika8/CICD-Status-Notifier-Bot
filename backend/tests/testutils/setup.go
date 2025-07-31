@@ -87,6 +87,7 @@ func CreateTestNotificationLog(buildEventID uuid.UUID, chatID int64) *notificati
 		channel,
 		recipient,
 		message,
+		3, // Default maxRetries
 	)
 	return log
 }
