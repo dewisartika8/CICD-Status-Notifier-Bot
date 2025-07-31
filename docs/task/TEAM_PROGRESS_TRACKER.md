@@ -36,8 +36,8 @@
 |--------|----------|---------------|---------------|---------------|---------|
 | Sprint 1 | Week 1-2 | 10/10 points | 11/11 points | 21/21 points | ✅ Complete |
 | Sprint 2 | Week 3-4 | 16/16 points | 20/20 points | 36/36 points | ✅ Complete |
-| Sprint 3 | Week 5-6 | 0/21 points | 0/10 points | 0/31 points | ⏳ Upcoming |
-| Sprint 4 | Week 7-8 | 0/18 points | 0/13 points | 0/31 points | ⏳ Upcoming |
+| Sprint 3 | Week 5-6 | 0/21 points | 0/25 points | 0/46 points | ⏳ Upcoming |
+| Sprint 4 | Week 7-8 | 0/18 points | 0/23 points | 0/41 points | ⏳ Upcoming |
 
 ---
 

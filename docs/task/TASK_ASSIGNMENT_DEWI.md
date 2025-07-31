@@ -190,165 +190,167 @@
 
 ---
 
-## 🔧 Sprint 3: Advanced Bot Features & DevOps (Week 5-6)
-**Total Story Points:** 10 points
+## 🎨 Sprint 3: Dashboard Frontend & Bot Enhancement (Week 5-6)
+**Total Story Points:** 17 points
 
-### Story 3.3: Advanced Bot Commands (5 points)
-**Goal:** Enhance bot with advanced functionality
-
-#### ✅ Task Checklist:
-- [ ] **Task 3.3.1:** Implement /history <project> [limit] command
-  - Show recent build history
-  - Add optional limit parameter
-  - Format build history clearly
-  - **Estimated:** 4 hours | **Status:** Not Started
-
-- [ ] **Task 3.3.2:** Add /metrics <project> command
-  - Display project metrics and analytics
-  - Show success rates and trends
-  - Create visual text representations
-  - **Estimated:** 5 hours | **Status:** Not Started
-
-- [ ] **Task 3.3.3:** Implement admin commands
-  - Add project management commands
-  - Implement user permission system
-  - Create admin-only functionality
-  - **Estimated:** 6 hours | **Status:** Not Started
-
-- [ ] **Task 3.3.4:** Add command rate limiting
-  - Prevent command spam
-  - Implement user-based rate limits
-  - Add rate limit notifications
-  - **Estimated:** 4 hours | **Status:** Not Started
-
-- [ ] **Task 3.3.5:** Enhance error messages and help text
-  - Improve user experience
-  - Add contextual help
-  - Create troubleshooting guides
-  - **Estimated:** 3 hours | **Status:** Not Started
-
-### Story 3.4: Enhanced Webhook Processing (5 points)
-**Goal:** Improve webhook reliability and processing
+### Story 3.2: React Dashboard Foundation (12 points)
+**Goal:** Build comprehensive dashboard frontend
 
 #### ✅ Task Checklist:
-- [ ] **Task 3.4.1:** Add webhook payload validation
-  - Validate incoming webhook structure
-  - Check required fields presence
-  - Add schema validation
+- [ ] **Task 3.2.1:** React project setup
+  - Vite + React + TypeScript configuration
+  - Material-UI theme setup
+  - Redux Toolkit integration
+  - Router configuration
   - **Estimated:** 4 hours | **Status:** Not Started
 
-- [ ] **Task 3.4.2:** Implement event deduplication
-  - Prevent duplicate event processing
-  - Add event fingerprinting
-  - Create deduplication cache
-  - **Estimated:** 5 hours | **Status:** Not Started
-
-- [ ] **Task 3.4.3:** Add support for multiple event types
-  - Handle different GitHub Actions events
-  - Add event type filtering
-  - Support custom event processing
+- [ ] **Task 3.2.2:** Dashboard layout
+  - App shell with sidebar
+  - Responsive navigation
+  - Header with user menu
+  - Footer component
   - **Estimated:** 6 hours | **Status:** Not Started
 
-- [ ] **Task 3.4.4:** Enhance error handling and retry logic
-  - Implement exponential backoff
-  - Add dead letter queue
-  - Create error monitoring
-  - **Estimated:** 5 hours | **Status:** Not Started
+- [ ] **Task 3.2.3:** Project overview page
+  - Status cards grid
+  - Project list table
+  - Quick stats widgets
+  - Activity timeline
+  - **Estimated:** 8 hours | **Status:** Not Started
 
-- [ ] **Task 3.4.5:** Add webhook processing metrics
-  - Track processing times
-  - Monitor success/failure rates
-  - Create performance dashboards
+- [ ] **Task 3.2.4:** API integration
+  - Axios configuration
+  - API service layer
+  - Error handling
+  - Loading states
+  - **Estimated:** 6 hours | **Status:** Not Started
+
+- [ ] **Task 3.2.5:** Real-time integration
+  - WebSocket client setup
+  - Real-time status updates
+  - Connection indicator
+  - Auto-reconnection
+  - **Estimated:** 8 hours | **Status:** Not Started
+
+### Story 3.4: Advanced Bot Commands (5 points)
+**Goal:** Enhance bot with dashboard integration
+
+#### ✅ Task Checklist:
+- [ ] **Task 3.4.1:** Dashboard command
+  - Generate secure dashboard links
+  - Deep linking to projects
+  - Temporary access tokens
   - **Estimated:** 4 hours | **Status:** Not Started
+
+- [ ] **Task 3.4.2:** Metrics command
+  - Project metrics display
+  - Formatted statistics
+  - Chart generation
+  - **Estimated:** 4 hours | **Status:** Not Started
+
+- [ ] **Task 3.4.3:** Report command
+  - Quick report generation
+  - PDF/Image exports
+  - Scheduled reports
+  - **Estimated:** 6 hours | **Status:** Not Started
 
 ### 📋 Sprint 3 Deliverables for Dewi:
-- [ ] Advanced bot commands with metrics
-- [ ] Robust webhook processing system
-- [ ] Performance monitoring and metrics
-- [ ] Enhanced error handling and recovery
+- [ ] Complete React dashboard with responsive design
+- [ ] Real-time WebSocket integration working
+- [ ] All core dashboard pages implemented (Overview, Projects, Details)
+- [ ] Material-UI theme fully customized
+- [ ] Advanced bot commands integrated with dashboard
+- [ ] Frontend connected to all backend APIs
+- [ ] Loading states and error handling implemented
+- [ ] 80%+ component test coverage
+- [ ] Dashboard accessible on mobile devices
 
 ---
 
-## 🚀 Sprint 4: Frontend Development & Production Deployment (Week 7-8)
-**Total Story Points:** 25 points (reduced from 37)
+## 🚀 Sprint 4: Dashboard Completion & Testing (Week 7-8)
+**Total Story Points:** 17 points
 
-### Story 4.1: React Dashboard Core Features (10 points)
-**Goal:** Complete essential dashboard functionality
-
-#### ✅ Task Checklist:
-- [ ] **Task 4.1.1:** Implement main dashboard overview page
-  - Create project status overview
-  - Add real-time status indicators
-  - Implement responsive design
-  - **Estimated:** 4 hours | **Status:** Not Started
-
-- [ ] **Task 4.1.2:** Create project detail pages
-  - Project-specific dashboard
-  - Build history visualization
-  - Project configuration interface
-  - **Estimated:** 5 hours | **Status:** Not Started
-
-- [ ] **Task 4.1.3:** Implement basic charts and visualization
-  - Setup Chart.js integration
-  - Create build success rate charts
-  - Add trend visualization
-  - **Estimated:** 4 hours | **Status:** Not Started
-
-- [ ] **Task 4.1.4:** Add project management interface
-  - Project CRUD operations via UI
-  - Form validation and error handling
-  - Integration with backend API
-  - **Estimated:** 3 hours | **Status:** Not Started
-
-### Story 4.2: Real-time Frontend Integration (8 points)
-**Goal:** Implement real-time updates in frontend
+### Story 4.2: Dashboard UI Completion (12 points)
+**Goal:** Complete all dashboard features
 
 #### ✅ Task Checklist:
-- [ ] **Task 4.2.1:** Setup WebSocket client connection
-  - WebSocket client implementation
-  - Connection management
-  - Status indicators
-  - **Estimated:** 3 hours | **Status:** Not Started
+- [ ] **Task 4.2.1:** Data visualization
+  - Success rate charts
+  - Build duration graphs
+  - Trend visualizations
+  - Comparison charts
+  - **Estimated:** 8 hours | **Status:** Not Started
 
-- [ ] **Task 4.2.2:** Implement real-time dashboard updates
-  - Live status updates
-  - Real-time notifications
-  - State synchronization
-  - **Estimated:** 4 hours | **Status:** Not Started
+- [ ] **Task 4.2.2:** Notification management
+  - Notification center
+  - Subscription management
+  - Template configuration
+  - Preference settings
+  - **Estimated:** 6 hours | **Status:** Not Started
 
-- [ ] **Task 4.2.3:** Add live notification system
-  - Toast notifications
-  - In-app notification center
-  - Notification preferences
-  - **Estimated:** 3 hours | **Status:** Not Started
+- [ ] **Task 4.2.3:** Project settings UI
+  - Configuration forms
+  - Webhook management
+  - Team management
+  - Access control
+  - **Estimated:** 6 hours | **Status:** Not Started
 
-### Story 4.3: Production Deployment (7 points)
-**Goal:** Deploy complete system to production
+- [ ] **Task 4.2.4:** Search & filters
+  - Global search
+  - Advanced filters
+  - Saved searches
+  - Search suggestions
+  - **Estimated:** 6 hours | **Status:** Not Started
+
+- [ ] **Task 4.2.5:** UI polish
+  - Animations
+  - Dark mode
+  - Accessibility
+  - Mobile responsive
+  - **Estimated:** 6 hours | **Status:** Not Started
+
+- [ ] **Task 4.2.6:** System monitoring dashboard
+  - API health status display
+  - Error rate visualization
+  - System performance metrics
+  - Alert history view
+  - **Estimated:** 6 hours | **Status:** Not Started
+
+### Story 4.4: Testing & Documentation (5 points)
+**Goal:** Comprehensive testing and documentation
 
 #### ✅ Task Checklist:
-- [ ] **Task 4.3.1:** Frontend production build and optimization
-  - Production build configuration
-  - Bundle optimization
-  - Environment configuration
-  - **Estimated:** 3 hours | **Status:** Not Started
+- [ ] **Task 4.4.1:** E2E testing
+  - Cypress setup and configuration
+  - User journey tests
+  - Cross-browser testing
+  - **Estimated:** 6 hours | **Status:** Not Started
 
-- [ ] **Task 4.3.2:** Complete Docker setup for frontend
-  - Multi-stage Dockerfile for React
-  - Production docker-compose updates
-  - Static file serving optimization
+- [ ] **Task 4.4.2:** Documentation
+  - User guide with screenshots
+  - Admin configuration guide
+  - API documentation (Swagger/OpenAPI)
+  - **Estimated:** 6 hours | **Status:** Not Started
+
+- [ ] **Task 4.4.3:** Performance optimization
+  - Frontend bundle optimization
+  - Code splitting implementation
+  - Image optimization
   - **Estimated:** 4 hours | **Status:** Not Started
-
-- [ ] **Task 4.3.3:** End-to-end testing and deployment
-  - E2E tests for critical workflows
-  - Production deployment testing
-  - Final system integration testing
-  - **Estimated:** 5 hours | **Status:** Not Started
 
 ### 📋 Sprint 4 Deliverables for Dewi:
-- [ ] Complete React dashboard with core features
-- [ ] Real-time updates and notifications
-- [ ] Production-ready deployment configuration
-- [ ] Comprehensive test coverage for frontend components
+- [ ] Complete dashboard with all data visualizations
+- [ ] Notification management UI fully functional
+- [ ] Project settings and configuration pages
+- [ ] Global search with advanced filtering
+- [ ] Dark mode support implemented
+- [ ] Accessibility compliance (WCAG 2.1 AA)
+- [ ] E2E tests with Cypress covering all user journeys
+- [ ] Complete user and admin documentation
+- [ ] Performance optimization (Lighthouse score > 90)
+- [ ] Bundle size < 500KB (initial load)
+- [ ] Cross-browser compatibility (Chrome, Firefox, Safari, Edge)
+- [ ] PWA capabilities with offline support
 
 ---
 
