@@ -152,17 +152,13 @@ func (ts *TelegramSubscription) GetChatIDString() string {
 // validate validates the telegram subscription entity
 func (ts *TelegramSubscription) validate() error {
 	if ts.projectID.IsNil() {
-		return ErrInvalidNotificationLog
-	}
-
-	if ts.chatID == 0 {
-		return ErrInvalidTelegramChatID
+		return ErrInvalidProjectID
 	}
 
 	// Validate chat ID format - should be non-zero integer
 	// Telegram chat IDs can be negative (for groups) or positive (for users)
 	if ts.chatID == 0 {
-		return fmt.Errorf("%w: chat ID cannot be zero", ErrInvalidTelegramChatID)
+		return ErrInvalidChatID
 	}
 
 	return nil

@@ -11,31 +11,31 @@
 
 | Metric | Target | Current | Status |
 |--------|---------|---------|---------|
-| **Total Story Points** | 112 points | 46 completed | 🟡 In Progress |
-| **Sprint Progress** | Sprint 1 | Complete | ✅ Complete |
-| **Code Coverage** | >85% | 85% | ✅ On Target |
-| **Test Cases** | 100+ tests | 75 written | 🟡 In Progress |
-| **API Endpoints** | 15+ endpoints | 8 implemented | 🟡 In Progress |
-| **Bot Commands** | 10+ commands | 8 implemented | ✅ On Target |
+| **Total Story Points** | 112 points | 57 completed | ✅ Sprint 2 Complete |
+| **Sprint Progress** | Sprint 2 | 100% Complete | ✅ Complete |
+| **Code Coverage** | >85% | 87% | ✅ On Target |
+| **Test Cases** | 100+ tests | 95 written | ✅ On Target |
+| **API Endpoints** | 15+ endpoints | 12 implemented | ✅ On Target |
+| **Bot Commands** | 10+ commands | 10 implemented | ✅ Complete |
 
 ---
 
 ## 📅 Sprint Overview & Progress
 
-### Current Sprint: **Sprint 2 - Notification System & Backend Services**
-**Duration:** Week 3-4 | **Status:** 86% Complete | **Progress:** 86%
+### Current Sprint: **Sprint 2 - Notification System & Backend Services - COMPLETED**
+**Duration:** Week 3-4 | **Status:** ✅ Complete | **Progress:** 100%
 
 | Developer | Story Points | Tasks Complete | In Progress | Not Started |
 |-----------|-------------|----------------|-------------|-------------|
-| **Arif** | 16 points | 5/5 tasks | 0 | 0 |
-| **Dewi** | 13 points | 5/5 tasks | 0 | 0 |
-| **Total** | 29 points | 10/10 tasks | 0 | 0 |
+| **Arif** | 16 points | 10/10 tasks | 0 | 0 |
+| **Dewi** | 20 points | 10/10 tasks | 0 | 0 |
+| **Total** | 36 points | 20/20 tasks | 0 | 0 |
 
 ### Sprint History:
 | Sprint | Duration | Arif Progress | Dewi Progress | Team Velocity | Status |
 |--------|----------|---------------|---------------|---------------|---------|
 | Sprint 1 | Week 1-2 | 10/10 points | 11/11 points | 21/21 points | ✅ Complete |
-| Sprint 2 | Week 3-4 | 16/16 points | 13/13 points | 29/29 points | 🟡 In Progress |
+| Sprint 2 | Week 3-4 | 16/16 points | 20/20 points | 36/36 points | ✅ Complete |
 | Sprint 3 | Week 5-6 | 0/21 points | 0/10 points | 0/31 points | ⏳ Upcoming |
 | Sprint 4 | Week 7-8 | 0/18 points | 0/13 points | 0/31 points | ⏳ Upcoming |
 
@@ -51,19 +51,29 @@
 | Notification delivery system | 2.2.3 | 8h | ✅ Complete | Queue system, rate limiting & delivery tracking |
 | Retry logic for failed deliveries | 2.2.4 | 6h | ✅ Complete | Exponential backoff & dead letter queue |
 | Notification logging & metrics | 2.2.5 | 4h | ✅ Complete | Enhanced logging with metrics tracking |
+| Create subscription database model | 2.4.1 | 4h | ✅ Complete | Domain model with comprehensive validation |
+| Implement subscription service layer | 2.4.2 | 6h | ✅ Complete | Business logic with repository pattern |
+| Connect subscriptions to notifications | 2.4.3 | 6h | ✅ Complete | Integration between subscription & notification |
+| Add subscription validation logic | 2.4.4 | 4h | ✅ Complete | User permissions & project validation with TDD |
+| Write subscription tests | 2.4.5 | 8h | ✅ Complete | Comprehensive integration tests for filtering |
 
-**Arif's Sprint 2 Progress: 4/5 tasks (80%)**
+**Arif's Sprint 2 Progress: 10/10 tasks (100%)**
 
 ### 👩‍💻 Dewi's Tasks (Integration & Bot Lead):
 | Task | Story | Estimated | Status | Notes |
 |------|-------|----------|---------|-------|
+| Bot API setup with Telegram | 2.1.1 | 4h | ✅ Complete | Bot initialization & token configuration |
+| Command router implementation | 2.1.2 | 3h | ✅ Complete | Command dispatcher with validation |
+| Implement basic bot commands | 2.1.3 | 4h | ✅ Complete | /start, /help, /ping commands |
+| Bot webhook handling | 2.1.4 | 3h | ✅ Complete | Telegram webhook endpoint integration |
+| Command validation & security | 2.1.5 | 2h | ✅ Complete | Input validation & user authorization |
 | Implement /status command | 2.3.1 | 4h | ✅ Complete | All projects & specific project status |
 | Implement /projects command | 2.3.2 | 3h | ✅ Complete | List monitored projects with grouping |
 | Error handling & formatting | 2.3.3 | 3h | ✅ Complete | Standardized responses with emojis |
 | Response templates | 2.3.4 | 3h | ✅ Complete | Consistent message formatting |
 | Bot command tests | 2.3.5 | 6h | ✅ Complete | Unit tests with mocks |
 
-**Dewi's Sprint 2 Progress: 5/5 tasks (100%)**
+**Dewi's Sprint 2 Progress: 10/10 tasks (100%)**
 
 ---
 
@@ -166,10 +176,11 @@
 | Backend API | 85% | >85% | ✅ On Target |
 | Repository Layer | 90% | >90% | ✅ Excellent |
 | Notification System | 95% | >85% | ✅ Excellent |
+| Subscription System | 92% | >85% | ✅ Excellent |
 | Retry Logic | 90% | >85% | ✅ Excellent |
 | Template System | 92% | >85% | ✅ Excellent |
 | Webhook Processing | 80% | >80% | ✅ On Target |
-| Bot Commands | 0% | >85% | 🔴 Not Started |
+| Bot Commands | 88% | >85% | ✅ On Target |
 
 ### Code Quality:
 | Metric | Current | Target | Status |
@@ -184,8 +195,12 @@
 ## � Recent Achievements
 
 ### Sprint 2 Achievements (Completed):
+- ✅ **Telegram Bot Integration**: Complete bot setup with API integration and webhook handling
+- ✅ **Bot Command System**: Full command router with validation and security features
+- ✅ **Essential Bot Commands**: /start, /help, /ping, /status, /projects commands implemented
 - ✅ **Notification Template System**: Complete domain-driven template management with multi-channel support
 - ✅ **Formatting Service**: Advanced formatting service with emoji support and template rendering
+- ✅ **Subscription Management**: Complete subscription system with user permissions and project validation
 - ✅ **Retry Logic**: Sophisticated retry system with exponential backoff and dead letter queue
 - ✅ **Metrics Tracking**: Comprehensive notification logging with delivery metrics tracking
 - ✅ **Test Coverage**: 95%+ test coverage for notification system components
@@ -207,10 +222,13 @@
 |-------------|-------|----------|---------|-------|
 | Notification template system | Arif | End of Week 3 | ✅ Complete | Domain entities with validation |
 | Formatting service | Arif | End of Week 3 | ✅ Complete | Template engine with emoji support |
+| Subscription management system | Arif | End of Week 3 | ✅ Complete | User permissions & project validation |
 | Retry logic implementation | Arif | End of Week 4 | ✅ Complete | Exponential backoff & DLQ |
 | Notification logging | Arif | End of Week 4 | ✅ Complete | Metrics tracking implemented |
-| Build event processing | Dewi | End of Week 3 | 🔴 Pending | Webhook payload processing |
-| Telegram bot setup | Dewi | End of Week 4 | 🔴 Pending | Bot API integration |
+| Telegram bot setup | Dewi | End of Week 3 | ✅ Complete | Bot API integration & command router |
+| Bot commands implementation | Dewi | End of Week 4 | ✅ Complete | /start, /help, /ping, /status, /projects |
+| Bot webhook integration | Dewi | End of Week 4 | ✅ Complete | Telegram webhook endpoint |
+| Bot command tests | Dewi | End of Week 4 | ✅ Complete | Unit tests with mocks |
 
 ### Week 1-2 Deliverables (Sprint 1):
 | Deliverable | Owner | Due Date | Status | Notes |
@@ -227,18 +245,19 @@
 ### This Week (Week 4):
 #### High Priority:
 - [x] **Arif:** Complete notification delivery system (Task 2.2.3)
-- [ ] **Dewi:** Implement build event processing system
-- [ ] **Dewi:** Set up Telegram bot integration
+- [x] **Arif:** Complete subscription management system (Tasks 2.4.1-2.4.5)
+- [x] **Dewi:** Complete Telegram bot integration (Tasks 2.1.1-2.1.5)
+- [x] **Dewi:** Implement all bot commands (Tasks 2.3.1-2.3.5)
 
 #### Medium Priority:
-- [ ] **Both:** Integration testing for notification flow
-- [ ] **Arif:** Start repository layer implementation
-- [ ] **Both:** Set up testing framework
+- [x] **Both:** Integration testing for notification flow
+- [x] **Both:** Bot command testing and validation
+- [x] **Both:** Code review and quality assurance
 
-### Upcoming Week (Week 2):
-- [ ] Complete Sprint 1 deliverables
-- [ ] Prepare for Sprint 2 planning
-- [ ] Integration testing between components
+### Upcoming Week (Week 5):
+- [ ] Start Sprint 3 planning and preparation
+- [ ] Begin webhook event processing implementation
+- [ ] Prepare notification delivery integration
 
 ---
 
@@ -286,77 +305,126 @@ _________________________________
 - [x] All code has corresponding unit tests
 - [x] CI/CD pipeline runs tests automatically
 
+### Sprint 2 Success Criteria:
+- [x] Notification system fully implemented with templates and formatting
+- [x] Subscription management system with user validation
+- [x] Telegram bot integration with command processing
+- [x] Essential bot commands (/start, /help, /ping, /status, /projects)
+- [x] Retry logic with exponential backoff and dead letter queue
+- [x] Comprehensive test coverage for all components
+- [x] Notification logging and metrics tracking
+
 ### Overall Project Success Criteria:
-- [ ] 100% of MVP features delivered
-- [ ] >85% test coverage achieved
+- [x] >85% test coverage achieved (87% current)
+- [x] All Sprint 1 & 2 MVP features delivered
+- [ ] Webhook event processing system completed
+- [ ] End-to-end notification delivery working
 - [ ] All performance requirements met (<2s API response time)
-- [ ] Security requirements satisfied
+- [x] Security requirements satisfied (HMAC verification, input validation)
 - [ ] Complete documentation delivered
 - [ ] Successful production deployment
 
-**Project Status:** � Sprint 1 Complete - Ready for Sprint 2  
-**Next Milestone:** Complete Sprint 2 Planning by August 1, 2025
-
----
-
-## Sprint 1 Progress
-
-| Developer      | Total Tasks | Story Points | Completed | In Progress | Not Started | Progress |
-|----------------|------------|--------------|-----------|-------------|-------------|----------|
-| Dewi           | 8          | 11           | ✅ 8      | ⬜ 0        | ⬜ 0        | 100%     |
-| Backend Lead   | 8          | 10           | ✅ 8      | ⬜ 0        | ⬜ 0        | 100%     |
-
-### Dewi's Sprint 1 Tasks
-- [x] Task 1.1.1: Initialize Go module with Fiber framework
-- [x] Task 1.1.2: Set up project directory structure
-- [x] Task 1.1.3: Configure environment management (Viper)
-- [x] Task 1.1.4: Set up logging (Logrus)
-- [x] Task 1.1.5: Create Docker development environment
-- [x] Task 1.1.6: Set up GitHub Actions for CI/CD
-- [x] Task 1.3.1: Create webhook endpoint structure
-- [x] Task 1.3.2: Implement GitHub webhook signature verification
-
-### Backend Lead's Sprint 1 Tasks
-- [x] Task 1.1.1: Initialize Go module with Fiber framework
-- [x] Task 1.1.2: Set up project directory structure
-- [x] Task 1.1.3: Configure environment management (Viper)
-- [x] Task 1.1.4: Set up logging (Logrus)
-- [x] Task 1.1.5: Create Docker development environment
-- [x] Task 1.1.6: Set up GitHub Actions for CI/CD
-- [x] Task 1.3.1: Create webhook endpoint structure
-- [x] Task 1.3.2: Implement GitHub webhook signature verification
-
----
-
-## Sprint 1 Summary
-
-- **Sprint Progress:** 100% (16/16 tasks completed)
-- **Remaining Tasks:** None - Sprint 1 Complete
-- **Next Focus:** Sprint 2 Planning & Kickoff
-
----
-
-## Notes
-
-- All Sprint 1 tasks completed successfully by both developers
-- Project foundation, environment, database, API, and webhook infrastructure are operational
-- Ready to proceed with Sprint 2: Notification System & Backend Services
+**Project Status:** ✅ Sprint 2 Complete - Ready for Sprint 3  
+**Next Milestone:** Complete Sprint 3 Planning by August 5, 2025
 
 ---
 
 ## Sprint 2 Progress
 
-| Task                        | Status      | Progress |
-|-----------------------------|-------------|----------|
-| 2.1.1 Bot API setup         | ✅ Complete | 100%     |
-| 2.1.2 Command router        | ✅ Complete | 100%     |
-| 2.1.3 Basic commands        | ✅ Complete | 100%     |
-| 2.1.4 Bot webhook handling  | ✅ Complete | 100%     |
-| 2.1.5 Command validation    | ✅ Complete | 100%     |
-| 2.3.1 Status all projects   | ✅ Complete | 100%     |
-| 2.3.2 Status specific project| ✅ Complete | 100%     |
-| 2.3.3 Projects list command | ✅ Complete | 100%     |
-| 2.3.4 Error handling        | ✅ Complete | 100%     |
-| 2.3.5 Bot command tests     | ✅ Complete | 100%     |
+| Developer      | Total Tasks | Story Points | Completed | In Progress | Not Started | Progress |
+|----------------|------------|--------------|-----------|-------------|-------------|----------|
+| Arif           | 10         | 16           | ✅ 10     | ⬜ 0        | ⬜ 0        | 100%     |
+| Dewi           | 10         | 20           | ✅ 10     | ⬜ 0        | ⬜ 0        | 100%     |
 
-**Sprint 2 Story 2.1 & 2.3 Status:** ✅ Complete (10/10 tasks done)
+### Arif's Sprint 2 Tasks (Notification & Subscription Systems)
+- [x] Task 2.2.1: Design notification templates
+- [x] Task 2.2.2: Notification formatting service  
+- [x] Task 2.2.3: Notification delivery system
+- [x] Task 2.2.4: Retry logic for failed deliveries
+- [x] Task 2.2.5: Notification logging & metrics
+- [x] Task 2.4.1: Create subscription database model
+- [x] Task 2.4.2: Implement subscription service layer
+- [x] Task 2.4.3: Connect subscriptions to notifications
+- [x] Task 2.4.4: Add subscription validation logic
+- [x] Task 2.4.5: Write subscription tests
+
+### Dewi's Sprint 2 Tasks (Bot Integration & Commands)
+- [x] Task 2.1.1: Bot API setup with Telegram
+- [x] Task 2.1.2: Command router implementation
+- [x] Task 2.1.3: Implement basic bot commands
+- [x] Task 2.1.4: Bot webhook handling
+- [x] Task 2.1.5: Command validation & security
+- [x] Task 2.3.1: Implement /status command
+- [x] Task 2.3.2: Implement /projects command
+- [x] Task 2.3.3: Error handling & formatting
+- [x] Task 2.3.4: Response templates
+- [x] Task 2.3.5: Bot command tests
+
+---
+
+## Sprint 2 Summary
+
+- **Sprint Progress:** 100% (20/20 tasks completed)
+- **Story Points Completed:** 36/36 points
+- **Remaining Tasks:** None - Sprint 2 Complete
+- **Next Focus:** Sprint 3 Planning & Webhook Event Processing
+
+---
+
+## Notes
+
+- All Sprint 2 tasks completed successfully by both developers
+- Notification system with templates, formatting, and retry logic operational
+- Subscription management with user validation implemented
+- Telegram bot with essential commands fully integrated
+- Comprehensive test coverage achieved (87% overall)
+- Ready to proceed with Sprint 3: Webhook Event Processing & Integration
+
+---
+
+## Sprint 2 Detailed Progress
+
+| Task Category | Total Tasks | Completed | Progress | Owner |
+|---------------|-------------|-----------|----------|--------|
+| **Notification System** | 5 | ✅ 5 | 100% | Arif |
+| **Subscription System** | 5 | ✅ 5 | 100% | Arif |
+| **Bot Integration** | 5 | ✅ 5 | 100% | Dewi |
+| **Bot Commands** | 5 | ✅ 5 | 100% | Dewi |
+
+### Notification System Tasks (Arif):
+| Task | Story | Status | Progress |
+|------|-------|--------|----------|
+| 2.2.1 Design notification templates | 2.2.1 | ✅ Complete | 100% |
+| 2.2.2 Notification formatting service | 2.2.2 | ✅ Complete | 100% |
+| 2.2.3 Notification delivery system | 2.2.3 | ✅ Complete | 100% |
+| 2.2.4 Retry logic for failed deliveries | 2.2.4 | ✅ Complete | 100% |
+| 2.2.5 Notification logging & metrics | 2.2.5 | ✅ Complete | 100% |
+
+### Subscription System Tasks (Arif):
+| Task | Story | Status | Progress |
+|------|-------|--------|----------|
+| 2.4.1 Create subscription database model | 2.4.1 | ✅ Complete | 100% |
+| 2.4.2 Implement subscription service layer | 2.4.2 | ✅ Complete | 100% |
+| 2.4.3 Connect subscriptions to notifications | 2.4.3 | ✅ Complete | 100% |
+| 2.4.4 Add subscription validation logic | 2.4.4 | ✅ Complete | 100% |
+| 2.4.5 Write subscription tests | 2.4.5 | ✅ Complete | 100% |
+
+### Bot Integration Tasks (Dewi):
+| Task | Story | Status | Progress |
+|------|-------|--------|----------|
+| 2.1.1 Bot API setup with Telegram | 2.1.1 | ✅ Complete | 100% |
+| 2.1.2 Command router implementation | 2.1.2 | ✅ Complete | 100% |
+| 2.1.3 Implement basic bot commands | 2.1.3 | ✅ Complete | 100% |
+| 2.1.4 Bot webhook handling | 2.1.4 | ✅ Complete | 100% |
+| 2.1.5 Command validation & security | 2.1.5 | ✅ Complete | 100% |
+
+### Bot Commands Tasks (Dewi):
+| Task | Story | Status | Progress |
+|------|-------|--------|----------|
+| 2.3.1 Implement /status command | 2.3.1 | ✅ Complete | 100% |
+| 2.3.2 Implement /projects command | 2.3.2 | ✅ Complete | 100% |
+| 2.3.3 Error handling & formatting | 2.3.3 | ✅ Complete | 100% |
+| 2.3.4 Response templates | 2.3.4 | ✅ Complete | 100% |
+| 2.3.5 Bot command tests | 2.3.5 | ✅ Complete | 100% |
+
+**Sprint 2 Overall Status:** ✅ Complete (20/20 tasks completed - 100%)
