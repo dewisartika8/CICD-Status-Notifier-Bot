@@ -3,7 +3,8 @@ package telegram
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/telegram"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/api"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/webhook"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/config"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/bot/domain"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/bot/port"
@@ -12,13 +13,13 @@ import (
 
 type TelegramHandler struct {
 	botService     port.BotService
-	webhookHandler *telegram.WebhookHandler
+	webhookHandler *webhook.TelegramWebhookHandler
 	telegramAPI    port.TelegramAPI
 }
 
 func NewTelegramHandler(cfg *config.AppConfig) *TelegramHandler {
 	// Initialize clean architecture components
-	telegramAPI := telegram.NewTelegramAPIAdapter(cfg)
+	telegramAPI := api.NewTelegramAPIAdapter(cfg)
 	commandValidator := domain.NewCommandValidator()
 	commandRouter := domain.NewCommandRouter()
 
@@ -32,7 +33,7 @@ func NewTelegramHandler(cfg *config.AppConfig) *TelegramHandler {
 	)
 
 	// Create webhook handler
-	webhookHandler := telegram.NewWebhookHandler(botService, commandValidator)
+	webhookHandler := webhook.NewTelegramWebhookHandler(botService, commandValidator)
 
 	return &TelegramHandler{
 		botService:     botService,

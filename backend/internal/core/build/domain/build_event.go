@@ -3,8 +3,8 @@ package domain
 import (
 	"encoding/json"
 
-	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/shared/domain/errors"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/shared/domain/value_objects"
+	"github.com/dewisartika8/cicd-status-notifier-bot/pkg/exception"
 )
 
 // BuildStatus represents the status of a build
@@ -131,19 +131,19 @@ func RestoreBuildEvent(params RestoreBuildEventParams) *BuildEvent {
 // validateBuildEventParams validates the build event creation parameters
 func validateBuildEventParams(params BuildEventParams) error {
 	if params.ProjectID.IsNil() {
-		return errors.NewDomainError("INVALID_PROJECT_ID", "project ID cannot be nil")
+		return exception.NewDomainError("INVALID_PROJECT_ID", "project ID cannot be nil")
 	}
 
 	if params.Branch == "" {
-		return errors.NewDomainError("INVALID_BRANCH", "branch cannot be empty")
+		return exception.NewDomainError("INVALID_BRANCH", "branch cannot be empty")
 	}
 
 	if !isValidEventType(params.EventType) {
-		return errors.NewDomainError("INVALID_EVENT_TYPE", "invalid event type")
+		return exception.NewDomainError("INVALID_EVENT_TYPE", "invalid event type")
 	}
 
 	if !isValidBuildStatus(params.Status) {
-		return errors.NewDomainError("INVALID_BUILD_STATUS", "invalid build status")
+		return exception.NewDomainError("INVALID_BUILD_STATUS", "invalid build status")
 	}
 
 	return nil
@@ -267,19 +267,19 @@ func (be *BuildEvent) IsFailed() bool {
 // validate performs domain validation
 func (be *BuildEvent) validate() error {
 	if be.projectID.IsNil() {
-		return errors.NewDomainError("INVALID_PROJECT_ID", "project ID cannot be empty")
+		return exception.NewDomainError("INVALID_PROJECT_ID", "project ID cannot be empty")
 	}
 
 	if be.eventType == "" {
-		return errors.NewDomainError("INVALID_EVENT_TYPE", "event type cannot be empty")
+		return exception.NewDomainError("INVALID_EVENT_TYPE", "event type cannot be empty")
 	}
 
 	if be.status == "" {
-		return errors.NewDomainError("INVALID_BUILD_STATUS", "build status cannot be empty")
+		return exception.NewDomainError("INVALID_BUILD_STATUS", "build status cannot be empty")
 	}
 
 	if be.branch == "" {
-		return errors.NewDomainError("INVALID_BRANCH", "branch cannot be empty")
+		return exception.NewDomainError("INVALID_BRANCH", "branch cannot be empty")
 	}
 
 	return nil
