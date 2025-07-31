@@ -233,3 +233,48 @@ type RetryService interface {
 	// ProcessRetryableNotification processes a notification that can be retried
 	ProcessRetryableNotification(ctx context.Context, req dto.ProcessRetryableNotificationRequest) (*dto.ProcessRetryableNotificationResponse, error)
 }
+
+// DeliveryChannel defines the interface for notification delivery channels (abstraction for Dewi's work)
+type DeliveryChannel interface {
+	// Send sends a notification through the specific channel
+	Send(ctx context.Context, recipient, subject, message string) (messageID string, err error)
+
+	// GetChannelType returns the type of the delivery channel
+	GetChannelType() domain.NotificationChannel
+
+	// IsAvailable checks if the delivery channel is available/healthy
+	IsAvailable(ctx context.Context) bool
+
+	// GetMaxRetries returns the maximum number of retries for this channel
+	GetMaxRetries() int
+
+	// GetRateLimitInfo returns rate limiting information for this channel
+	GetRateLimitInfo() (maxRequests int, windowSize time.Duration)
+}
+
+// NotificationDeliveryService defines the interface for notification delivery operations
+type NotificationDeliveryService interface {
+	// QueueNotification adds a notification to the delivery queue
+	QueueNotification(ctx context.Context, notification *domain.QueuedNotification) error
+
+	// ProcessQueue processes pending notifications in the queue
+	ProcessQueue(ctx context.Context, batchSize int) error
+
+	// ProcessRetryQueue processes failed notifications for retry
+	ProcessRetryQueue(ctx context.Context, batchSize int) error
+
+	// GetQueueStats returns queue statistics
+	GetQueueStats(ctx context.Context) (map[string]interface{}, error)
+
+	// RegisterDeliveryChannel registers a delivery channel
+	RegisterDeliveryChannel(channel DeliveryChannel) error
+
+	// UnregisterDeliveryChannel unregisters a delivery channel
+	UnregisterDeliveryChannel(channelType domain.NotificationChannel) error
+
+	// SendNotification sends a notification immediately (bypassing queue)
+	SendNotification(ctx context.Context, channel domain.NotificationChannel, recipient, subject, message string) (messageID string, err error)
+
+	// CheckRateLimit checks if a notification can be sent based on rate limiting
+	CheckRateLimit(ctx context.Context, channel domain.NotificationChannel, recipient string) (bool, error)
+}

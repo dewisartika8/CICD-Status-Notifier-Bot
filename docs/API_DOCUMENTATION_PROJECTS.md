@@ -1,13 +1,61 @@
-# Project Management API Documentation
+# CI/CD Status Notifier Bot - API Documentation
 
 ## Overview
-The Project Management API provides CRUD operations for managing CI/CD projects in the notification system.
+The CI/CD Status Notifier Bot API provides comprehensive endpoints for managing CI/CD projects, processing webhooks, managing Telegram bot interactions, and monitoring system health.
 
-**Base URL:** `/api/v1/projects`
+**Base URL:** `http://localhost:8080`
+**API Version:** `v1`
 
 ---
 
-## Endpoints
+## Table of Contents
+1. [Health Check Endpoints](#health-check-endpoints)
+2. [Project Management API](#project-management-api)
+3. [Webhook API](#webhook-api)
+4. [Telegram Bot API](#telegram-bot-api)
+5. [Common Data Models](#common-data-models)
+6. [Error Handling](#error-handling)
+7. [Authentication & Security](#authentication--security)
+
+---
+
+## Health Check Endpoints
+
+### 1. Root Health Check
+**GET** `/`
+
+Returns basic service status and version information.
+
+#### Response (200 OK)
+```json
+{
+    "message": "CI/CD Status Notifier Bot is running 🚀",
+    "status": "healthy",
+    "version": "1.0.0"
+}
+```
+
+### 2. Detailed Health Check
+**GET** `/health`
+
+Returns detailed health status including database connectivity.
+
+#### Response (200 OK)
+```json
+{
+    "status": "healthy",
+    "database": "connected",
+    "timestamp": "2025-07-31T10:00:00Z"
+}
+```
+
+---
+
+# Project Management API
+
+**Base URL:** `/api/v1/projects`
+
+## Project Management Endpoints
 
 ### 1. Create Project
 **POST** `/api/v1/projects`
@@ -240,7 +288,256 @@ Updates the status of a specific project.
 
 ---
 
+# Webhook API
+
+**Base URL:** `/api/v1/webhooks`
+
+The Webhook API handles incoming webhook events from GitHub and provides endpoints to retrieve webhook event data.
+
+## Webhook Endpoints
+
+### 1. Process GitHub Webhook
+**POST** `/api/v1/webhooks/github/{projectId}`
+
+Processes incoming GitHub webhook events for a specific project.
+
+#### Path Parameters
+- `projectId` (required): Project UUID
+
+#### Headers Required
+- `X-Hub-Signature-256` (required): GitHub HMAC-SHA256 signature for payload verification
+- `X-GitHub-Event` (required): Type of GitHub event (workflow_run, push, pull_request)
+- `X-GitHub-Delivery` (optional): GitHub delivery ID for idempotency
+- `Content-Type`: application/json
+
+#### Supported Event Types
+- `workflow_run`: GitHub Actions workflow events
+- `push`: Repository push events
+- `pull_request`: Pull request events
+
+#### Request Body
+GitHub webhook payload (varies by event type)
+
+#### Example Request
+```bash
+POST /api/v1/webhooks/github/550e8400-e29b-41d4-a716-446655440000
+X-Hub-Signature-256: sha256=1234567890abcdef...
+X-GitHub-Event: workflow_run
+X-GitHub-Delivery: 12345-67890-abcdef
+Content-Type: application/json
+
+{
+    "action": "completed",
+    "workflow_run": {
+        "id": 12345,
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success"
+    },
+    "repository": {
+        "name": "my-repo",
+        "full_name": "user/my-repo"
+    }
+}
+```
+
+#### Response (202 Accepted)
+```json
+{
+    "message": "webhook processed successfully",
+    "data": {
+        "id": "webhook-event-uuid",
+        "project_id": "550e8400-e29b-41d4-a716-446655440000",
+        "event_type": "workflow_run",
+        "delivery_id": "12345-67890-abcdef",
+        "processed_at": "2025-07-31T10:00:00Z",
+        "created_at": "2025-07-31T10:00:00Z"
+    }
+}
+```
+
+#### Error Responses
+
+**400 Bad Request**
+```json
+{
+    "error": "project_id is required"
+}
+```
+
+**401 Unauthorized**
+```json
+{
+    "error": "missing X-Hub-Signature-256 header"
+}
+```
+
+**404 Not Found**
+```json
+{
+    "error": "project not found"
+}
+```
+
+### 2. Get Webhook Events by Project
+**GET** `/api/v1/webhooks/events/{projectId}`
+
+Retrieves webhook events for a specific project with pagination support.
+
+#### Path Parameters
+- `projectId` (required): Project UUID
+
+#### Query Parameters
+- `limit` (optional): Number of results to return (default: 20, max: 100)
+- `offset` (optional): Number of results to skip (default: 0)
+
+#### Example Request
+```
+GET /api/v1/webhooks/events/550e8400-e29b-41d4-a716-446655440000?limit=10&offset=0
+```
+
+#### Response (200 OK)
+```json
+{
+    "data": [
+        {
+            "id": "webhook-event-uuid-1",
+            "project_id": "550e8400-e29b-41d4-a716-446655440000",
+            "event_type": "workflow_run",
+            "delivery_id": "12345-67890-abcdef",
+            "processed_at": "2025-07-31T10:00:00Z",
+            "created_at": "2025-07-31T10:00:00Z"
+        },
+        {
+            "id": "webhook-event-uuid-2",
+            "project_id": "550e8400-e29b-41d4-a716-446655440000",
+            "event_type": "push",
+            "delivery_id": "67890-abcdef-12345",
+            "processed_at": "2025-07-31T09:30:00Z",
+            "created_at": "2025-07-31T09:30:00Z"
+        }
+    ],
+    "pagination": {
+        "limit": 10,
+        "offset": 0,
+        "count": 2
+    }
+}
+```
+
+### 3. Get Specific Webhook Event
+**GET** `/api/v1/webhooks/events/{projectId}/{eventId}`
+
+Retrieves details of a specific webhook event including the full payload.
+
+#### Path Parameters
+- `projectId` (required): Project UUID
+- `eventId` (required): Webhook event UUID
+
+#### Example Request
+```
+GET /api/v1/webhooks/events/550e8400-e29b-41d4-a716-446655440000/webhook-event-uuid-1
+```
+
+#### Response (200 OK)
+```json
+{
+    "data": {
+        "id": "webhook-event-uuid-1",
+        "project_id": "550e8400-e29b-41d4-a716-446655440000",
+        "event_type": "workflow_run",
+        "delivery_id": "12345-67890-abcdef",
+        "payload": {
+            "action": "completed",
+            "workflow_run": {
+                "id": 12345,
+                "name": "CI",
+                "status": "completed",
+                "conclusion": "success"
+            }
+        },
+        "processed_at": "2025-07-31T10:00:00Z",
+        "created_at": "2025-07-31T10:00:00Z"
+    }
+}
+```
+
+#### Error Response (404 Not Found)
+```json
+{
+    "error": "webhook event not found"
+}
+```
+
+---
+
+# Telegram Bot API
+
+**Base URL:** `/api/v1/telegram`
+
+The Telegram Bot API handles Telegram webhook events and provides webhook management endpoints.
+
+## Telegram Endpoints
+
+### 1. Telegram Webhook Handler
+**POST** `/api/v1/telegram/webhook`
+
+Handles incoming webhook updates from Telegram Bot API.
+
+#### Request Body
+Telegram Update object (automatically sent by Telegram)
+
+#### Response (200 OK)
+```json
+{
+    "status": "ok"
+}
+```
+
+### 2. Set Telegram Webhook
+**POST** `/api/v1/telegram/webhook/set`
+
+Sets the webhook URL for the Telegram bot.
+
+#### Request Body
+```json
+{
+    "webhook_url": "https://your-domain.com"
+}
+```
+
+#### Response (200 OK)
+```json
+{
+    "message": "Webhook set successfully",
+    "webhook_url": "https://your-domain.com/api/v1/telegram/webhook"
+}
+```
+
+#### Error Response (400 Bad Request)
+```json
+{
+    "error": "webhook_url is required"
+}
+```
+
+### 3. Delete Telegram Webhook
+**DELETE** `/api/v1/telegram/webhook`
+
+Removes the webhook URL for the Telegram bot.
+
+#### Response (200 OK)
+```json
+{
+    "message": "Webhook deleted successfully"
+}
+```
+
+---
+
 ## Data Models
+
+## Common Data Models
 
 ### Project
 ```json
@@ -255,19 +552,39 @@ Updates the status of a specific project.
 }
 ```
 
+### Webhook Event
+```json
+{
+    "id": "string (UUID)",
+    "project_id": "string (UUID)",
+    "event_type": "string (workflow_run|push|pull_request)",
+    "delivery_id": "string (optional)",
+    "payload": "object (GitHub webhook payload)",
+    "processed_at": "string (ISO 8601 timestamp, nullable)",
+    "created_at": "string (ISO 8601 timestamp)"
+}
+```
+
 ### Project Status Values
 - `active`: Project is actively monitored
 - `inactive`: Project monitoring is paused
 - `archived`: Project is archived (read-only)
 
+### Webhook Event Types
+- `workflow_run`: GitHub Actions workflow events
+- `push`: Repository push events  
+- `pull_request`: Pull request events
+
 ---
 
-## Error Codes
+## Error Handling
 
 ### HTTP Status Codes
 - `200 OK`: Request successful
 - `201 Created`: Resource created successfully
+- `202 Accepted`: Request accepted for processing (webhooks)
 - `400 Bad Request`: Invalid request data or validation failed
+- `401 Unauthorized`: Authentication failed (webhook signature invalid)
 - `404 Not Found`: Resource not found
 - `409 Conflict`: Resource already exists (duplicate name or repository URL)
 - `500 Internal Server Error`: Server error
@@ -279,6 +596,13 @@ Updates the status of a specific project.
 {
     "error": "Validation failed",
     "details": "Detailed validation error message"
+}
+```
+
+#### Authentication Error (401)
+```json
+{
+    "error": "missing X-Hub-Signature-256 header"
 }
 ```
 
@@ -303,13 +627,50 @@ Updates the status of a specific project.
 }
 ```
 
+### Webhook-Specific Errors
+
+#### Invalid Webhook Signature (401)
+```json
+{
+    "error": "invalid webhook signature"
+}
+```
+
+#### Unsupported Event Type (400)
+```json
+{
+    "error": "unsupported event type: issues"
+}
+```
+
+#### Empty Request Body (400)
+```json
+{
+    "error": "empty request body"
+}
+```
+
 ---
 
 ## Examples
 
 ### cURL Examples
 
-#### Create a new project
+#### Health Check Examples
+
+##### Root health check
+```bash
+curl http://localhost:8080/
+```
+
+##### Detailed health check
+```bash
+curl http://localhost:8080/health
+```
+
+#### Project Management Examples
+
+##### Create a new project
 ```bash
 curl -X POST http://localhost:8080/api/v1/projects \
   -H "Content-Type: application/json" \
@@ -320,17 +681,17 @@ curl -X POST http://localhost:8080/api/v1/projects \
   }'
 ```
 
-#### List all active projects
+##### List all active projects
 ```bash
 curl "http://localhost:8080/api/v1/projects?status=active&limit=10"
 ```
 
-#### Get a specific project
+##### Get a specific project
 ```bash
 curl "http://localhost:8080/api/v1/projects/550e8400-e29b-41d4-a716-446655440000"
 ```
 
-#### Update a project
+##### Update a project
 ```bash
 curl -X PUT http://localhost:8080/api/v1/projects/550e8400-e29b-41d4-a716-446655440000 \
   -H "Content-Type: application/json" \
@@ -339,12 +700,12 @@ curl -X PUT http://localhost:8080/api/v1/projects/550e8400-e29b-41d4-a716-446655
   }'
 ```
 
-#### Delete a project
+##### Delete a project
 ```bash
 curl -X DELETE "http://localhost:8080/api/v1/projects/550e8400-e29b-41d4-a716-446655440000"
 ```
 
-#### Update project status
+##### Update project status
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/projects/550e8400-e29b-41d4-a716-446655440000/status \
   -H "Content-Type: application/json" \
@@ -353,20 +714,98 @@ curl -X PATCH http://localhost:8080/api/v1/projects/550e8400-e29b-41d4-a716-4466
   }'
 ```
 
+#### Webhook Examples
+
+##### Process GitHub webhook (automatically called by GitHub)
+```bash
+curl -X POST http://localhost:8080/api/v1/webhooks/github/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Content-Type: application/json" \
+  -H "X-Hub-Signature-256: sha256=1234567890abcdef..." \
+  -H "X-GitHub-Event: workflow_run" \
+  -H "X-GitHub-Delivery: 12345-67890-abcdef" \
+  -d '{
+    "action": "completed",
+    "workflow_run": {
+      "id": 12345,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  }'
+```
+
+##### List webhook events for a project
+```bash
+curl "http://localhost:8080/api/v1/webhooks/events/550e8400-e29b-41d4-a716-446655440000?limit=10&offset=0"
+```
+
+##### Get specific webhook event
+```bash
+curl "http://localhost:8080/api/v1/webhooks/events/550e8400-e29b-41d4-a716-446655440000/webhook-event-uuid"
+```
+
+#### Telegram Bot Examples
+
+##### Set Telegram webhook
+```bash
+curl -X POST http://localhost:8080/api/v1/telegram/webhook/set \
+  -H "Content-Type: application/json" \
+  -d '{
+    "webhook_url": "https://your-domain.com"
+  }'
+```
+
+##### Delete Telegram webhook
+```bash
+curl -X DELETE http://localhost:8080/api/v1/telegram/webhook
+```
+
 ---
 
 ## Authentication & Security
 
-Currently, the API does not require authentication. In production environments, consider implementing:
+### Current Implementation
+- **Webhook Signature Verification**: GitHub webhooks are verified using HMAC-SHA256 signatures
+- **No API Authentication**: Other endpoints currently do not require authentication
+- **Input Validation**: All endpoints perform request validation
+- **SQL Injection Protection**: GORM ORM with prepared statements
 
-- API key authentication
-- JWT tokens
-- Rate limiting
-- Input sanitization
-- HTTPS enforcement
+### Security Headers Required for Webhooks
+- `X-Hub-Signature-256`: Required for GitHub webhook signature verification
+- `X-GitHub-Event`: Required to identify the event type
+- `X-GitHub-Delivery`: Optional but recommended for idempotency
+
+### Production Security Recommendations
+Consider implementing the following for production environments:
+
+- **API Key Authentication**: For project management endpoints
+- **JWT Tokens**: For user session management
+- **Rate Limiting**: To prevent abuse
+- **HTTPS Enforcement**: For secure communication
+- **Input Sanitization**: Additional validation layers
+- **CORS Configuration**: Proper cross-origin request handling
+- **Logging & Monitoring**: Security event tracking
+
+### Webhook Security
+- **Signature Verification**: All GitHub webhooks must include valid HMAC-SHA256 signatures
+- **Event Type Validation**: Only supported event types are processed
+- **Project Validation**: Webhooks are validated against existing projects
+- **Idempotency**: Duplicate webhooks are handled gracefully using delivery IDs
 
 ---
 
-**API Version:** v1  
-**Last Updated:** July 29, 2025  
-**Implemented in:** Sprint 1 - Story 1.4
+**API Documentation**  
+**Version:** v1  
+**Last Updated:** July 31, 2025  
+**Backend Implementation:** Go with Fiber framework  
+**Database:** PostgreSQL with GORM  
+**Architecture:** Hexagonal/Clean Architecture
+
+---
+
+## Additional Resources
+
+- [Webhook Implementation Guide](./WEBHOOK_IMPLEMENTATION.md)
+- [Technical Design Document](./TECHNICAL_DESIGN.md)
+- [Project Setup Guide](./PROJECT_SETUP.md)
+- [Implementation Summary](./IMPLEMENTATION_SUMMARY_1.4.md)
