@@ -13,6 +13,7 @@ import (
 	ps "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/project/service"
 	ws "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/webhook/service"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/server/app"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/telegram"
 	"github.com/dewisartika8/cicd-status-notifier-bot/pkg/crypto"
 	"github.com/dewisartika8/cicd-status-notifier-bot/pkg/database"
 	"github.com/dewisartika8/cicd-status-notifier-bot/pkg/logger"
@@ -90,5 +91,6 @@ func main() {
 		WebhookHandler: webhookHandler,
 		Logger:         logger,
 	})
+	go telegram.StartTelegramBot()
 	appService.Run() // start http server
 }
