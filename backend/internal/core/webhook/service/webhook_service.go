@@ -297,15 +297,18 @@ func (s *webhookService) processPushEvent(ctx context.Context, webhookEvent *dom
 		return fmt.Errorf(errFailedToCreateBuildEvent, err)
 	}
 
-	message := s.buildNotificationMessage(payload, branch, commitInfo)
-	_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
-		ctx,
-		buildEvent.ID(),
-		webhookEvent.ProjectID(),
-		message,
-	)
-	if err != nil {
-		return fmt.Errorf(errFailedToCreateNotification, err)
+	// Create notification if build event was created successfully
+	if buildEvent != nil {
+		message := s.buildNotificationMessage(payload, branch, commitInfo)
+		_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
+			ctx,
+			buildEvent.ID(),
+			webhookEvent.ProjectID(),
+			message,
+		)
+		if err != nil {
+			return fmt.Errorf(errFailedToCreateNotification, err)
+		}
 	}
 
 	return nil
@@ -479,33 +482,36 @@ func (s *webhookService) processPullRequestEvent(ctx context.Context, webhookEve
 		return fmt.Errorf(errFailedToCreateBuildEvent, err)
 	}
 
-	// Create notification message
-	actionText := "opened"
-	switch payload.Action {
-	case "closed":
-		if pr.State == "merged" {
-			actionText = "merged"
-		} else {
-			actionText = "closed"
+	// Create notification if build event was created successfully
+	if buildEvent != nil {
+		// Create notification message
+		actionText := "opened"
+		switch payload.Action {
+		case "closed":
+			if pr.State == "merged" {
+				actionText = "merged"
+			} else {
+				actionText = "closed"
+			}
+		case "reopened":
+			actionText = "reopened"
+		case "synchronize":
+			actionText = "updated"
 		}
-	case "reopened":
-		actionText = "reopened"
-	case "synchronize":
-		actionText = "updated"
-	}
 
-	message := fmt.Sprintf("📋 *Pull Request %s*\n*Project:* %s\n*Title:* %s\n*Branch:* %s → %s\n*Author:* %s",
-		actionText, payload.Repository.FullName, pr.Title, pr.Head.Ref, pr.Base.Ref, authorName)
+		message := fmt.Sprintf("📋 *Pull Request %s*\n*Project:* %s\n*Title:* %s\n*Branch:* %s → %s\n*Author:* %s",
+			actionText, payload.Repository.FullName, pr.Title, pr.Head.Ref, pr.Base.Ref, authorName)
 
-	// Send notifications
-	_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
-		ctx,
-		buildEvent.ID(),
-		webhookEvent.ProjectID(),
-		message,
-	)
-	if err != nil {
-		return fmt.Errorf(errFailedToCreateNotification, err)
+		// Send notifications
+		_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
+			ctx,
+			buildEvent.ID(),
+			webhookEvent.ProjectID(),
+			message,
+		)
+		if err != nil {
+			return fmt.Errorf(errFailedToCreateNotification, err)
+		}
 	}
 
 	return nil
