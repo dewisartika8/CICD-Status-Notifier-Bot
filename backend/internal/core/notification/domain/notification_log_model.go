@@ -12,7 +12,7 @@ import (
 // NotificationLogModel represents the GORM model for notification logs
 type NotificationLogModel struct {
 	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
-	BuildEventID uuid.UUID  `gorm:"type:uuid;not null;index:idx_notification_logs_build_event"`
+	BuildEventID uuid.UUID  `gorm:"type:uuid;not null;index:idx_notification_logs_build_event_id"`
 	ChatID       int64      `gorm:"type:bigint;not null;index:idx_notification_logs_chat_id"`
 	MessageID    *int       `gorm:"type:integer"`
 	Status       string     `gorm:"type:varchar(20);not null;index:idx_notification_logs_status"`
@@ -21,9 +21,9 @@ type NotificationLogModel struct {
 	CreatedAt    time.Time  `gorm:"type:timestamp with time zone;not null;default:now();index:idx_notification_logs_created_at"`
 
 	// Additional columns from migration 002
-	RetryCount int        `gorm:"type:integer;not null;default:0;column:retry_count"`
-	Channel    string     `gorm:"type:varchar(50);column:channel"`
-	TemplateID *uuid.UUID `gorm:"type:uuid;column:template_id"`
+	RetryCount int        `gorm:"type:integer;not null;default:0;column:retry_count;index:idx_notification_logs_retry_count"`
+	Channel    string     `gorm:"type:varchar(50);column:channel;index:idx_notification_logs_channel"`
+	TemplateID *uuid.UUID `gorm:"type:uuid;column:template_id;index:idx_notification_logs_template"`
 }
 
 // TableName returns the table name for the NotificationLogModel

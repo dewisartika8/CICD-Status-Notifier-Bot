@@ -9,12 +9,12 @@ import (
 
 // NotificationTemplateModel represents the database model for notification templates
 type NotificationTemplateModel struct {
-	ID           uuid.UUID `gorm:"column:id;primaryKey;type:uuid;default:gen_random_uuid()"`
-	TemplateType string    `gorm:"column:template_type;not null" json:"template_type"`
-	Channel      string    `gorm:"column:channel;not null" json:"channel"`
+	ID           uuid.UUID `gorm:"column:id;primaryKey;type:uuid;default:uuid_generate_v4()"`
+	TemplateType string    `gorm:"column:template_type;not null;index:idx_notification_templates_type;uniqueIndex:unique_template_type_channel" json:"template_type"`
+	Channel      string    `gorm:"column:channel;not null;index:idx_notification_templates_channel;uniqueIndex:unique_template_type_channel" json:"channel"`
 	Subject      string    `gorm:"column:subject;not null" json:"subject"`
 	BodyTemplate string    `gorm:"column:body_template;not null" json:"body_template"`
-	IsActive     bool      `gorm:"column:is_active;default:true" json:"is_active"`
+	IsActive     bool      `gorm:"column:is_active;default:true;index:idx_notification_templates_active" json:"is_active"`
 	CreatedAt    time.Time `gorm:"column:created_at;type:timestamp with time zone;default:current_timestamp" json:"created_at"`
 	UpdatedAt    time.Time `gorm:"column:updated_at;type:timestamp with time zone;default:current_timestamp" json:"updated_at"`
 }

@@ -9,15 +9,15 @@ import (
 
 // RetryConfigurationModel represents the database model for retry configurations
 type RetryConfigurationModel struct {
-	ID               uuid.UUID `gorm:"column:id;primaryKey;type:uuid;default:gen_random_uuid()"`
-	ProjectID        uuid.UUID `gorm:"column:project_id;not null;type:uuid"`
-	Channel          string    `gorm:"column:channel;not null"`
+	ID               uuid.UUID `gorm:"column:id;primaryKey;type:uuid;default:uuid_generate_v4()"`
+	ProjectID        uuid.UUID `gorm:"column:project_id;not null;type:uuid;index:idx_retry_configurations_project;uniqueIndex:unique_project_channel;constraint:OnDelete:CASCADE"`
+	Channel          string    `gorm:"column:channel;not null;index:idx_retry_configurations_channel;uniqueIndex:unique_project_channel"`
 	MaxRetries       int       `gorm:"column:max_retries;not null;default:3"`
 	BaseDelaySeconds int       `gorm:"column:base_delay_seconds;not null;default:5"`
 	MaxDelaySeconds  int       `gorm:"column:max_delay_seconds;not null;default:300"`
 	BackoffFactor    float64   `gorm:"column:backoff_factor;not null;default:2.0;type:decimal(3,2)"`
 	RetryableErrors  []string  `gorm:"column:retryable_errors;type:text[]"`
-	IsActive         bool      `gorm:"column:is_active;default:true"`
+	IsActive         bool      `gorm:"column:is_active;default:true;index:idx_retry_configurations_active"`
 	CreatedAt        time.Time `gorm:"column:created_at;type:timestamp with time zone;default:current_timestamp"`
 	UpdatedAt        time.Time `gorm:"column:updated_at;type:timestamp with time zone;default:current_timestamp"`
 }
