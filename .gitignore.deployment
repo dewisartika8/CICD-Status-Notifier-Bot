@@ -1,0 +1,51 @@
+# Deployment and Runtime Files
+logs/
+backups/
+tmp/
+*.pid
+
+# Docker volumes
+postgres_data/
+postgres_dev_data/
+
+# Environment files with sensitive data
+.env.local
+.env.production.local
+config/config.yaml
+config/config.dev.yaml
+
+# Build artifacts
+backend/bin/
+backend/tmp/
+frontend/dist/
+frontend/node_modules/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Runtime logs
+*.log
+build-errors.log
+
+# Backup files
+*.bak
+*.backup
+*.sql
+*.sql.gz
+*.tar.gz
+
+# Service files
+*.service

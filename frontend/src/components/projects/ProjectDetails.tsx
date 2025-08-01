@@ -1,28 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { fetchProjectDetails } from '../../services/api';
+import { ProjectResponse } from '../../types';
 import BuildHistory from './BuildHistory';
 import StatusBadge from './StatusBadge';
 
-const ProjectDetails = () => {
-    const { id } = useParams();
-    const [project, setProject] = useState(null);
+const ProjectDetails: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const [project, setProject] = useState<ProjectResponse | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const getProjectDetails = async () => {
+        const fetchProject = async () => {
+            if (!id) return;
+            
             try {
-                const data = await fetchProjectDetails(id);
-                setProject(data);
-            } catch (err) {
-                setError(err.message);
+                const response = await fetchProjectDetails(id);
+                setProject(response.data.data);
+            } catch (err: any) {
+                setError(err?.message || 'Failed to fetch project');
             } finally {
                 setLoading(false);
             }
         };
 
-        getProjectDetails();
+        fetchProject();
     }, [id]);
 
     if (loading) {
@@ -33,12 +36,16 @@ const ProjectDetails = () => {
         return <div>Error: {error}</div>;
     }
 
+    if (!project) {
+        return <div>Project not found</div>;
+    }
+
     return (
         <div>
             <h1>{project.name}</h1>
             <StatusBadge status={project.status} />
-            <p>{project.description}</p>
-            <h2>Build History</h2>
+            <p>Repository: {project.repository_url}</p>
+            
             <BuildHistory projectId={project.id} />
         </div>
     );

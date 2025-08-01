@@ -1,7 +1,11 @@
 import React from 'react';
 
-const StatusBadge = ({ status }) => {
-    const getStatusClass = (status) => {
+interface StatusBadgeProps {
+  status: string;
+}
+
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+    const getStatusClass = (status: string) => {
         switch (status) {
             case 'success':
                 return 'bg-green-500 text-white';

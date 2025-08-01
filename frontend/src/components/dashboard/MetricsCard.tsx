@@ -1,6 +1,14 @@
 import React from 'react';
 
-const MetricsCard = ({ title, value, description }) => {
+import { Card, CardContent, Typography } from '@mui/material';
+
+interface MetricsCardProps {
+  title: string;
+  value: string | number;
+  description?: string;
+}
+
+const MetricsCard: React.FC<MetricsCardProps> = ({ title, value, description }) => {
     return (
         <div className="metrics-card">
             <h3 className="metrics-card-title">{title}</h3>

@@ -1,20 +1,19 @@
 import React, { useEffect } from 'react';
-import { useProjects } from '../hooks/useProjects';
+import useProjects from '../hooks/useProjects';
 import Layout from '../components/common/Layout';
 import ProjectList from '../components/dashboard/ProjectList';
-import Overview from '../components/dashboard/Overview';
+// import Overview from '../components/dashboard/Overview';
 
 const Projects = () => {
-    const { projects, fetchProjects } = useProjects();
+    const { projects, loading, error } = useProjects();
 
-    useEffect(() => {
-        fetchProjects();
-    }, [fetchProjects]);
+    // Projects are automatically loaded by the hook
+    // No need for manual effect
 
     return (
         <Layout>
             <h1>Projects Dashboard</h1>
-            <Overview />
+            {/* <Overview /> */}
             <ProjectList projects={projects} />
         </Layout>
     );

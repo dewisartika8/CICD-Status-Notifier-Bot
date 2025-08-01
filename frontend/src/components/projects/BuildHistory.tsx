@@ -1,24 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { fetchBuildHistory } from '../../services/api';
+import { webhookApi } from '../../services/api';
+import { WebhookEventResponse } from '../../types';
 
-const BuildHistory = ({ projectId }) => {
-    const [builds, setBuilds] = useState([]);
+interface BuildHistoryProps {
+    projectId: string;
+}
+
+const BuildHistory: React.FC<BuildHistoryProps> = ({ projectId }) => {
+    const [builds, setBuilds] = useState<WebhookEventResponse[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const getBuildHistory = async () => {
+        const fetchBuilds = async () => {
             try {
-                const data = await fetchBuildHistory(projectId);
-                setBuilds(data);
-            } catch (err) {
+                const response = await webhookApi.getWebhookEventsByProject(projectId);
+                setBuilds(response.data.data);
+            } catch (err: any) {
                 setError(err.message);
             } finally {
                 setLoading(false);
             }
         };
 
-        getBuildHistory();
+        fetchBuilds();
     }, [projectId]);
 
     if (loading) {
@@ -44,10 +49,10 @@ const BuildHistory = ({ projectId }) => {
                 <tbody>
                     {builds.map(build => (
                         <tr key={build.id}>
-                            <td>{build.buildNumber}</td>
-                            <td>{build.status}</td>
-                            <td>{build.duration} seconds</td>
-                            <td>{new Date(build.date).toLocaleString()}</td>
+                            <td>{build.delivery_id}</td>
+                            <td>{build.event_type}</td>
+                            <td>N/A</td>
+                            <td>{new Date(build.created_at).toLocaleString()}</td>
                         </tr>
                     ))}
                 </tbody>

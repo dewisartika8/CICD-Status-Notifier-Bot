@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Testing Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .status { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🧪 API Testing Dashboard</h1>
+    <p>Testing Story 3.2 React Dashboard Foundation - API Integration</p>
+
+    <div id="health-test" class="test-section">
+        <h3>🏥 Health API Test</h3>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <div id="health-result"></div>
+    </div>
+
+    <div id="dashboard-test" class="test-section">
+        <h3>📊 Dashboard API Test</h3>
+        <button onclick="testDashboard()">Test Dashboard Overview</button>
+        <div id="dashboard-result"></div>
+    </div>
+
+    <div id="projects-test" class="test-section">
+        <h3>📁 Projects API Test</h3>
+        <button onclick="testProjects()">Test Projects List</button>
+        <div id="projects-result"></div>
+    </div>
+
+    <div id="telegram-test" class="test-section">
+        <h3>📱 Telegram API Test</h3>
+        <button onclick="testTelegram()">Test Telegram Subscriptions</button>
+        <div id="telegram-result"></div>
+    </div>
+
+    <div id="webhook-test" class="test-section">
+        <h3>🔗 Webhook API Test</h3>
+        <button onclick="testWebhook()">Test Webhook Events</button>
+        <div id="webhook-result"></div>
+    </div>
+
+    <div id="summary" class="test-section">
+        <h3>📝 Test Summary</h3>
+        <div id="summary-result">Click test buttons above to start testing...</div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        let testResults = {};
+
+        function updateResult(testId, success, data, error = null) {
+            const element = document.getElementById(testId + '-result');
+            const section = document.getElementById(testId + '-test');
+            
+            if (success) {
+                section.className = 'test-section success';
+                element.innerHTML = \`
+                    <div class="status">✅ SUCCESS</div>
+                    <pre>\${JSON.stringify(data, null, 2)}</pre>
+                \`;
+                testResults[testId] = true;
+            } else {
+                section.className = 'test-section error';
+                element.innerHTML = \`
+                    <div class="status">❌ FAILED</div>
+                    <pre>Error: \${error || 'Unknown error'}</pre>
+                \`;
+                testResults[testId] = false;
+            }
+            updateSummary();
+        }
+
+        function setLoading(testId) {
+            const section = document.getElementById(testId + '-test');
+            const element = document.getElementById(testId + '-result');
+            section.className = 'test-section loading';
+            element.innerHTML = '<div class="status">🔄 Testing...</div>';
+        }
+
+        async function testHealth() {
+            setLoading('health');
+            try {
+                const response = await fetch(\`\${API_BASE}/health\`);
+                const data = await response.json();
+                updateResult('health', response.ok, data);
+            } catch (error) {
+                updateResult('health', false, null, error.message);
+            }
+        }
+
+        async function testDashboard() {
+            setLoading('dashboard');
+            try {
+                const response = await fetch(\`\${API_BASE}/api/v1/dashboard/overview\`);
+                const data = await response.json();
+                updateResult('dashboard', response.ok, data);
+            } catch (error) {
+                updateResult('dashboard', false, null, error.message);
+            }
+        }
+
+        async function testProjects() {
+            setLoading('projects');
+            try {
+                const response = await fetch(\`\${API_BASE}/api/v1/projects\`);
+                const data = await response.json();
+                updateResult('projects', response.ok, data);
+            } catch (error) {
+                updateResult('projects', false, null, error.message);
+            }
+        }
+
+        async function testTelegram() {
+            setLoading('telegram');
+            try {
+                const response = await fetch(\`\${API_BASE}/api/v1/telegram/subscriptions\`);
+                const data = await response.json();
+                updateResult('telegram', response.ok, data);
+            } catch (error) {
+                updateResult('telegram', false, null, error.message);
+            }
+        }
+
+        async function testWebhook() {
+            setLoading('webhook');
+            try {
+                // Test with a dummy project ID since we need one
+                const response = await fetch(\`\${API_BASE}/api/v1/webhooks/events/test-project-id\`);
+                const data = await response.json();
+                updateResult('webhook', response.ok, data);
+            } catch (error) {
+                updateResult('webhook', false, null, error.message);
+            }
+        }
+
+        function updateSummary() {
+            const total = Object.keys(testResults).length;
+            const passed = Object.values(testResults).filter(Boolean).length;
+            const failed = total - passed;
+            
+            const summaryElement = document.getElementById('summary-result');
+            summaryElement.innerHTML = \`
+                <h4>Results: \${passed}/\${total} tests passed</h4>
+                <ul>
+                    <li>✅ Passed: \${passed}</li>
+                    <li>❌ Failed: \${failed}</li>
+                    <li>⏳ Remaining: \${5 - total}</li>
+                </ul>
+                \${passed === 5 ? '<div style="color: green; font-weight: bold;">🎉 All API tests passed! Story 3.2 integration successful!</div>' : ''}
+                \${passed === 0 && total > 0 ? '<div style="color: orange; font-weight: bold;">⚠️ All tests failed. Backend may not be running on localhost:8080</div>' : ''}
+            \`;
+        }
+
+        // Auto-run all tests on page load
+        setTimeout(() => {
+            console.log('Starting automated API tests...');
+            testHealth();
+            setTimeout(() => testDashboard(), 1000);
+            setTimeout(() => testProjects(), 2000);
+            setTimeout(() => testTelegram(), 3000);
+            setTimeout(() => testWebhook(), 4000);
+        }, 1000);
+    </script>
+</body>
+</html>

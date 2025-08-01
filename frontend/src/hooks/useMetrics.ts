@@ -1,24 +1,34 @@
 import { useEffect, useState } from 'react';
-import { fetchMetrics } from '../services/api';
+import { dashboardApi } from '../services/api';
+import { Metrics } from '../types';
 
 const useMetrics = () => {
-    const [metrics, setMetrics] = useState(null);
+    const [metrics, setMetrics] = useState<Metrics | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const getMetrics = async () => {
+        const loadMetrics = async () => {
             try {
-                const data = await fetchMetrics();
-                setMetrics(data);
-            } catch (err) {
-                setError(err);
+                const response = await dashboardApi.getOverview();
+                const metricsData = response.data.data;
+                const mappedMetrics: Metrics = {
+                    successRate: metricsData.success_rate,
+                    averageDuration: metricsData.average_duration,
+                    deploymentFrequency: 0,
+                    buildsToday: 0,
+                    buildsThisWeek: 0,
+                    buildsThisMonth: metricsData.total_builds
+                };
+                setMetrics(mappedMetrics);
+            } catch (err: any) {
+                setError(err?.message || 'Failed to load metrics');
             } finally {
                 setLoading(false);
             }
         };
 
-        getMetrics();
+        loadMetrics();
     }, []);
 
     return { metrics, loading, error };
