@@ -14,6 +14,8 @@ import (
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/config"
 	bs "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/build/service"
 	dashboardService "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/dashboard/service"
+	notificationService "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/notification/service"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/notification/service/sender"
 	subscription "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/notification/service/subscription"
 	ps "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/project/service"
 	ws "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/webhook/service"
@@ -59,6 +61,7 @@ func main() {
 	buildEventRepo := postgres.NewBuildEventRepository(db)
 	webhookEventRepo := postgres.NewWebhookEventRepository(db)
 	telegramSubscriptionRepo := postgres.NewTelegramSubscriptionRepository(db)
+	notificationLogRepo := postgres.NewNotificationLogRepository(db)
 
 	// Initialize dashboard-specific repositories
 	dashboardBuildEventRepo := postgres.NewDashboardBuildEventRepository(db)
@@ -88,15 +91,31 @@ func main() {
 		Logger:       logger,
 	})
 
+	// Initialize notification services
+	notificationSender := notificationService.NewNotificationSenderService(sender.Dep{
+		TelegramBotToken: cfg.Telegram.BotToken,
+		EmailConfig:      sender.EmailConfig{}, // Empty config for now
+		SlackConfig:      sender.SlackConfig{}, // Empty config for now
+		Logger:           logger,
+	})
+
+	notificationLogService := notificationService.NewNotificationLogService(notificationService.NotificationLogDep{
+		NotificationRepo:         notificationLogRepo,
+		TelegramSubscriptionRepo: telegramSubscriptionRepo,
+		NotificationSender:       notificationSender,
+		Logger:                   logger,
+	})
+
 	// Initialize crypto components
 	signatureVerifier := crypto.NewGitHubSignatureVerifier()
 
 	// Initialize webhook service
 	webhookService := ws.NewWebhookService(ws.Dep{
-		WebhookEventRepo:  webhookEventRepo,
-		ProjectService:    projectService,
-		BuildService:      buildService,
-		SignatureVerifier: signatureVerifier,
+		WebhookEventRepo:       webhookEventRepo,
+		ProjectService:         projectService,
+		BuildService:           buildService,
+		NotificationLogService: notificationLogService,
+		SignatureVerifier:      signatureVerifier,
 	})
 
 	// Initialize handlers

@@ -59,8 +59,8 @@ func (nlm *NotificationLogModel) ToEntity() *NotificationLog {
 		BuildEventID: buildEventID,
 		ProjectID:    projectID,
 		Channel:      NotificationChannel(nlm.Channel),
-		Recipient:    string(nlm.ChatID), // Convert ChatID to string as recipient
-		Message:      "Notification",     // Default message since not stored in DB
+		Recipient:    strconv.FormatInt(nlm.ChatID, 10), // Convert ChatID to string as recipient
+		Message:      "Notification",                    // Default message since not stored in DB
 		Status:       NotificationStatus(nlm.Status),
 		ErrorMessage: nlm.ErrorMessage,
 		RetryCount:   nlm.RetryCount,
@@ -87,7 +87,7 @@ func convertIntToStringPointer(i *int) *string {
 	if i == nil {
 		return nil
 	}
-	str := string(rune(*i))
+	str := strconv.Itoa(*i)
 	return &str
 }
 
