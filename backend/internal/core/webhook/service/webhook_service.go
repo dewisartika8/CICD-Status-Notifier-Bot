@@ -273,71 +273,31 @@ func (s *webhookService) processWorkflowRunEvent(ctx context.Context, webhookEve
 
 // processPushEvent processes push events
 func (s *webhookService) processPushEvent(ctx context.Context, webhookEvent *domain.WebhookEvent, payload dto.GitHubActionsPayload) error {
-	// Extract information from push payload
-	branch := "main" // Default branch
-	if payload.Ref != "" {
-		// Remove refs/heads/ prefix
-		if len(payload.Ref) > 11 && payload.Ref[:11] == "refs/heads/" {
-			branch = payload.Ref[11:]
-		}
-	}
+	branch := s.extractBranchFromRef(payload.Ref)
+	commitInfo := s.extractCommitInfo(payload)
 
-	// Get commit information
-	var commitSHA, commitMessage, authorName, authorEmail, buildURL string
-
-	if payload.HeadCommit != nil {
-		commitSHA = payload.HeadCommit.ID
-		commitMessage = payload.HeadCommit.Message
-		authorName = payload.HeadCommit.Author.Name
-		authorEmail = payload.HeadCommit.Author.Email
-		buildURL = payload.HeadCommit.URL
-	} else if len(payload.Commits) > 0 {
-		// Use the latest commit if HeadCommit is not available
-		lastCommit := payload.Commits[len(payload.Commits)-1]
-		commitSHA = lastCommit.ID
-		commitMessage = lastCommit.Message
-		authorName = lastCommit.Author.Name
-		authorEmail = lastCommit.Author.Email
-		buildURL = payload.Repository.HTMLURL + commitURLPath + commitSHA
-	} else {
-		// Fallback
-		commitSHA = payload.After
-		commitMessage = "Push to " + branch
-		if payload.Pusher != nil {
-			authorName = payload.Pusher.Name
-			authorEmail = payload.Pusher.Email
-		}
-		buildURL = payload.Repository.HTMLURL + commitURLPath + commitSHA
-	}
-
-	// Create build event request
 	buildEventReq := buildDto.CreateBuildEventRequest{
 		ProjectID:     webhookEvent.ProjectID(),
 		EventType:     buildDomain.EventTypePush,
 		Status:        buildDomain.BuildStatusSuccess,
 		Branch:        branch,
-		CommitSHA:     commitSHA,
-		CommitMessage: commitMessage,
-		AuthorName:    authorName,
-		AuthorEmail:   authorEmail,
-		BuildURL:      buildURL,
+		CommitSHA:     commitInfo.SHA,
+		CommitMessage: commitInfo.Message,
+		AuthorName:    commitInfo.AuthorName,
+		AuthorEmail:   commitInfo.AuthorEmail,
+		BuildURL:      commitInfo.BuildURL,
 		WebhookPayload: func() []byte {
 			data, _ := json.Marshal(payload)
 			return data
 		}(),
 	}
 
-	// Create build event
 	buildEvent, err := s.BuildService.CreateBuildEvent(ctx, buildEventReq)
 	if err != nil {
 		return fmt.Errorf(errFailedToCreateBuildEvent, err)
 	}
 
-	// Create notification message
-	message := fmt.Sprintf("📤 *Push Event*\n*Project:* %s\n*Branch:* %s\n*Commit:* %s\n*Author:* %s",
-		payload.Repository.FullName, branch, commitMessage, authorName)
-
-	// Send notifications
+	message := s.buildNotificationMessage(payload, branch, commitInfo)
 	_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
 		ctx,
 		buildEvent.ID(),
@@ -349,6 +309,125 @@ func (s *webhookService) processPushEvent(ctx context.Context, webhookEvent *dom
 	}
 
 	return nil
+}
+
+// extractBranchFromRef extracts branch name from git ref
+func (s *webhookService) extractBranchFromRef(ref string) string {
+	if ref == "" {
+		return "main"
+	}
+	if len(ref) > 11 && ref[:11] == "refs/heads/" {
+		return ref[11:]
+	}
+	return "main"
+}
+
+// commitInfo holds commit information
+type commitInfo struct {
+	SHA         string
+	Message     string
+	AuthorName  string
+	AuthorEmail string
+	BuildURL    string
+}
+
+// extractCommitInfo extracts commit information from payload with enhanced nil safety
+func (s *webhookService) extractCommitInfo(payload dto.GitHubActionsPayload) (result commitInfo) {
+	// Use named return and defer to ensure we always return something valid
+	defer func() {
+		if r := recover(); r != nil {
+			// If panic occurs, return the fallback commit info
+			result = s.createFallbackCommitInfo(payload)
+		}
+	}()
+
+	// Try HeadCommit first
+	if payload.HeadCommit != nil {
+		result = commitInfo{
+			SHA:         s.safeString(payload.HeadCommit.ID),
+			Message:     s.safeString(payload.HeadCommit.Message),
+			AuthorName:  s.safeString(payload.HeadCommit.Author.Name),
+			AuthorEmail: s.safeString(payload.HeadCommit.Author.Email),
+			BuildURL:    s.safeString(payload.HeadCommit.URL),
+		}
+		return result
+	}
+
+	// Try Commits array as fallback
+	if len(payload.Commits) > 0 {
+		lastCommit := payload.Commits[len(payload.Commits)-1]
+		buildURL := ""
+		commitID := s.safeString(lastCommit.ID)
+		if payload.Repository.HTMLURL != "" && commitID != "" {
+			buildURL = payload.Repository.HTMLURL + commitURLPath + commitID
+		}
+
+		result = commitInfo{
+			SHA:         commitID,
+			Message:     s.safeString(lastCommit.Message),
+			AuthorName:  s.safeString(lastCommit.Author.Name),
+			AuthorEmail: s.safeString(lastCommit.Author.Email),
+			BuildURL:    buildURL,
+		}
+		return result
+	}
+
+	// Final fallback
+	return s.createFallbackCommitInfo(payload)
+}
+
+// safeString returns empty string if input is empty or contains only whitespace
+func (s *webhookService) safeString(str string) string {
+	if str == "" {
+		return ""
+	}
+	// You could add additional sanitization here if needed
+	return str
+}
+
+// createFallbackCommitInfo creates fallback commit info when HeadCommit and Commits are not available
+func (s *webhookService) createFallbackCommitInfo(payload dto.GitHubActionsPayload) commitInfo {
+	sha := payload.After
+	if sha == "" {
+		sha = "unknown"
+	}
+
+	message := "Push to " + s.extractBranchFromRef(payload.Ref)
+
+	var authorName, authorEmail string
+	if payload.Pusher != nil {
+		authorName = payload.Pusher.Name
+		authorEmail = payload.Pusher.Email
+	}
+
+	buildURL := ""
+	if payload.Repository.HTMLURL != "" && sha != "" && sha != "unknown" {
+		buildURL = payload.Repository.HTMLURL + commitURLPath + sha
+	}
+
+	return commitInfo{
+		SHA:         sha,
+		Message:     message,
+		AuthorName:  authorName,
+		AuthorEmail: authorEmail,
+		BuildURL:    buildURL,
+	}
+}
+
+// buildNotificationMessage builds notification message with safe string handling
+func (s *webhookService) buildNotificationMessage(payload dto.GitHubActionsPayload, branch string, commit commitInfo) string {
+	repoName := payload.Repository.FullName
+	if repoName == "" {
+		repoName = "Unknown Repository"
+	}
+
+	authorName := commit.AuthorName
+	if authorName == "" {
+		authorName = "Unknown Author"
+	}
+
+	return fmt.Sprintf("📤 *Push Event*\n*Project:* %s\n*Branch:* %s\n*Commit:* %s\n*Author:* %s",
+		repoName, branch, commit.Message, authorName)
 }
 
 // processPullRequestEvent processes pull request events
