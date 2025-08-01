@@ -1,0 +1,1661 @@
+openapi: 3.0.3
+info:
+  title: CI/CD Status Notifier Bot API
+  description: |
+    Comprehensive REST API for the CI/CD Status Notifier Bot system. This API provides endpoints for managing CI/CD projects, processing webhooks, handling Telegram bot interactions, and monitoring system metrics.
+    
+    ## Features
+    - **Project Management**: Complete CRUD operations for CI/CD projects
+    - **Webhook Processing**: GitHub webhook event handling and processing
+    - **Telegram Bot Integration**: Bot commands and notification management
+    - **Dashboard Analytics**: Real-time metrics and build analytics
+    - **Health Monitoring**: System health and status endpoints
+    
+    ## Architecture
+    - **Backend**: Go with Fiber framework
+    - **Database**: PostgreSQL with GORM
+    - **Architecture Pattern**: Hexagonal/Clean Architecture
+    - **Authentication**: Webhook signature verification (HMAC-SHA256)
+  version: "1.0.0"
+  contact:
+    name: CICD Status Notifier Bot Team
+    email: support@cicd-notifier.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.cicd-notifier.com
+    description: Production server
+
+paths:
+  # Health Check Endpoints
+  /:
+    get:
+      tags:
+        - Health Check
+      summary: Root health check
+      description: Returns basic service status and version information
+      operationId: getRootHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "CI/CD Status Notifier Bot is running 🚀"
+                  status:
+                    type: string
+                    example: "healthy"
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+  /health:
+    get:
+      tags:
+        - Health Check
+      summary: Detailed health check
+      description: Returns detailed health status including database connectivity
+      operationId: getDetailedHealth
+      responses:
+        '200':
+          description: Detailed health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  database:
+                    type: string
+                    example: "connected"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-08-01T10:00:00Z"
+
+  # Project Management Endpoints
+  /api/v1/projects:
+    post:
+      tags:
+        - Project Management
+      summary: Create a new project
+      description: Creates a new CI/CD project with the provided information
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+            examples:
+              basic_project:
+                summary: Basic project creation
+                value:
+                  name: "My Test Project"
+                  repository_url: "https://github.com/user/test-repo"
+                  webhook_secret: "my-secure-secret-key"
+              with_telegram:
+                summary: Project with Telegram integration
+                value:
+                  name: "Production API"
+                  repository_url: "https://github.com/company/production-api"
+                  webhook_secret: "super-secure-webhook-secret"
+                  telegram_chat_id: -1001234567890
+      responses:
+        '201':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Project created successfully"
+                  data:
+                    $ref: '#/components/schemas/ProjectResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags:
+        - Project Management
+      summary: List projects
+      description: Retrieves a list of projects with optional filtering and pagination
+      operationId: listProjects
+      parameters:
+        - name: status
+          in: query
+          description: Filter by project status
+          schema:
+            type: string
+            enum: [active, inactive, archived]
+        - name: name
+          in: query
+          description: Filter by project name (partial match)
+          schema:
+            type: string
+        - name: repository_url
+          in: query
+          description: Filter by repository URL (partial match)
+          schema:
+            type: string
+        - name: has_telegram_chat
+          in: query
+          description: Filter by presence of Telegram chat integration
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: offset
+          in: query
+          description: Number of results to skip for pagination
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: sort_by
+          in: query
+          description: Field to sort by
+          schema:
+            type: string
+            enum: [name, repository_url, status, created_at, updated_at]
+            default: created_at
+        - name: sort_order
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Projects retrieved successfully"
+                  data:
+                    $ref: '#/components/schemas/ListProjectResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/projects/{id}:
+    get:
+      tags:
+        - Project Management
+      summary: Get project by ID
+      description: Retrieves a specific project by its unique identifier
+      operationId: getProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Project retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Project retrieved successfully"
+                  data:
+                    $ref: '#/components/schemas/ProjectResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Project Management
+      summary: Update project
+      description: Updates an existing project with the provided information
+      operationId: updateProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+            examples:
+              partial_update:
+                summary: Partial project update
+                value:
+                  name: "Updated Project Name"
+              full_update:
+                summary: Complete project update
+                value:
+                  name: "Updated Project Name"
+                  repository_url: "https://github.com/user/updated-repo"
+                  webhook_secret: "new-webhook-secret"
+                  telegram_chat_id: -1001234567891
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Project updated successfully"
+                  data:
+                    $ref: '#/components/schemas/ProjectResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Project Management
+      summary: Delete project
+      description: Permanently deletes a project and all associated data
+      operationId: deleteProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Project deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Project deleted successfully"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/projects/{id}/status:
+    patch:
+      tags:
+        - Project Management
+      summary: Update project status
+      description: Updates the status of a specific project (active, inactive, archived)
+      operationId: updateProjectStatus
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectStatusUpdateRequest'
+            examples:
+              activate:
+                summary: Activate project
+                value:
+                  status: "active"
+              deactivate:
+                summary: Deactivate project
+                value:
+                  status: "inactive"
+              archive:
+                summary: Archive project
+                value:
+                  status: "archived"
+      responses:
+        '200':
+          description: Project status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Project status updated successfully"
+                  data:
+                    $ref: '#/components/schemas/ProjectResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/projects/{id}/statistics:
+    get:
+      tags:
+        - Dashboard Analytics
+      summary: Get project statistics
+      description: Retrieves detailed build statistics and metrics for a specific project
+      operationId: getProjectStatistics
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Project statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Project statistics retrieved successfully"
+                  data:
+                    $ref: '#/components/schemas/ProjectStatisticsResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Webhook Endpoints
+  /api/v1/webhooks/github/{projectId}:
+    post:
+      tags:
+        - Webhook Processing
+      summary: Process GitHub webhook
+      description: |
+        Processes incoming GitHub webhook events for a specific project. This endpoint is automatically called by GitHub when configured webhook events occur.
+        
+        **Supported Events:**
+        - `workflow_run` - GitHub Actions workflow execution
+        - `push` - Code push to repository
+        - `pull_request` - Pull request events
+        
+        **Security:**
+        - Requires valid HMAC-SHA256 signature in `X-Hub-Signature-256` header
+        - Validates webhook secret against project configuration
+      operationId: processGitHubWebhook
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: UUID of the project to process webhook for
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GitHubWebhookPayload'
+            examples:
+              workflow_run:
+                summary: GitHub Actions workflow run
+                value:
+                  action: "completed"
+                  workflow_run:
+                    id: 123456789
+                    name: "CI"
+                    status: "completed"
+                    conclusion: "success"
+                    html_url: "https://github.com/user/repo/actions/runs/123456789"
+                    run_number: 42
+                    event: "push"
+                    head_branch: "main"
+                    head_sha: "abc123def456"
+                  repository:
+                    name: "test-repo"
+                    full_name: "user/test-repo"
+                    html_url: "https://github.com/user/test-repo"
+                  sender:
+                    login: "username"
+      responses:
+        '202':
+          description: Webhook accepted for processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Webhook processed successfully"
+                  event_id:
+                    type: string
+                    format: uuid
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Invalid webhook signature
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "invalid webhook signature"
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - GitHubWebhookSignature: []
+
+  /api/v1/webhooks/events/{projectId}:
+    get:
+      tags:
+        - Webhook Processing
+      summary: Get webhook events by project
+      description: Retrieves a list of webhook events for a specific project with pagination
+      operationId: getWebhookEventsByProject
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: UUID of the project
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: Maximum number of events to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of events to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: event_type
+          in: query
+          description: Filter by event type
+          schema:
+            type: string
+            enum: [workflow_run, push, pull_request]
+      responses:
+        '200':
+          description: Webhook events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Webhook events retrieved successfully"
+                  data:
+                    type: object
+                    properties:
+                      events:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WebhookEventResponse'
+                      total:
+                        type: integer
+                        example: 150
+                      limit:
+                        type: integer
+                        example: 20
+                      offset:
+                        type: integer
+                        example: 0
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/webhooks/events/{projectId}/{eventId}:
+    get:
+      tags:
+        - Webhook Processing
+      summary: Get specific webhook event
+      description: Retrieves detailed information about a specific webhook event
+      operationId: getWebhookEvent
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: UUID of the project
+          schema:
+            type: string
+            format: uuid
+        - name: eventId
+          in: path
+          required: true
+          description: UUID of the webhook event
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Webhook event retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Webhook event retrieved successfully"
+                  data:
+                    $ref: '#/components/schemas/WebhookEventResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Dashboard Analytics Endpoints
+  /api/v1/dashboard/overview:
+    get:
+      tags:
+        - Dashboard Analytics
+      summary: Get dashboard overview
+      description: Retrieves comprehensive overview metrics for the entire CI/CD system
+      operationId: getDashboardOverview
+      responses:
+        '200':
+          description: Dashboard overview retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Dashboard overview retrieved successfully"
+                  data:
+                    $ref: '#/components/schemas/OverviewResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/builds/analytics:
+    get:
+      tags:
+        - Dashboard Analytics
+      summary: Get build analytics
+      description: Retrieves comprehensive build analytics and trends over a specified time range
+      operationId: getBuildAnalytics
+      parameters:
+        - name: range
+          in: query
+          description: Time range for analytics
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+            default: 7d
+      responses:
+        '200':
+          description: Build analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Build analytics retrieved successfully"
+                  data:
+                    $ref: '#/components/schemas/BuildAnalyticsResponse'
+        '400':
+          description: Invalid time range
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid time range"
+                  details:
+                    type: string
+                    example: "Supported ranges are: 7d, 30d, 90d"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Telegram Bot Endpoints
+  /api/v1/telegram/webhook:
+    post:
+      tags:
+        - Telegram Bot
+      summary: Telegram webhook handler
+      description: |
+        Handles incoming webhook updates from Telegram Bot API. This endpoint is automatically called by Telegram when bot interactions occur.
+        
+        **Supported Commands:**
+        - `/start` - Initialize bot interaction
+        - `/help` - Show available commands
+        - `/status` - Show bot status
+        - `/subscribe` - Subscribe to project notifications
+        - `/unsubscribe` - Unsubscribe from notifications
+      operationId: handleTelegramWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelegramUpdate'
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+
+  /api/v1/telegram/webhook/set:
+    post:
+      tags:
+        - Telegram Bot
+      summary: Set Telegram webhook
+      description: Sets the webhook URL for the Telegram bot to receive updates
+      operationId: setTelegramWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - webhook_url
+              properties:
+                webhook_url:
+                  type: string
+                  format: uri
+                  description: HTTPS URL for webhook endpoint
+                  example: "https://your-domain.com"
+      responses:
+        '200':
+          description: Webhook set successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Webhook set successfully"
+                  webhook_url:
+                    type: string
+                    example: "https://your-domain.com/api/v1/telegram/webhook"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "webhook_url is required"
+
+  /api/v1/telegram/webhook:
+    delete:
+      tags:
+        - Telegram Bot
+      summary: Delete Telegram webhook
+      description: Removes the webhook configuration for the Telegram bot
+      operationId: deleteTelegramWebhook
+      responses:
+        '200':
+          description: Webhook deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Webhook deleted successfully"
+
+  /api/v1/telegram/subscriptions:
+    post:
+      tags:
+        - Telegram Bot
+      summary: Create Telegram subscription
+      description: Creates a new Telegram subscription for project notifications
+      operationId: createTelegramSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTelegramSubscriptionRequest'
+      responses:
+        '201':
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Subscription created successfully"
+                  data:
+                    $ref: '#/components/schemas/TelegramSubscriptionResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags:
+        - Telegram Bot
+      summary: List active subscriptions
+      description: Retrieves a list of active Telegram subscriptions
+      operationId: getActiveSubscriptions
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of subscriptions per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Subscriptions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Subscriptions retrieved successfully"
+                  data:
+                    $ref: '#/components/schemas/TelegramSubscriptionListResponse'
+
+  /api/v1/telegram/subscriptions/{id}:
+    get:
+      tags:
+        - Telegram Bot
+      summary: Get subscription by ID
+      description: Retrieves a specific Telegram subscription by its ID
+      operationId: getTelegramSubscriptionById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the subscription
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Subscription retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Subscription retrieved successfully"
+                  data:
+                    $ref: '#/components/schemas/TelegramSubscriptionResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Telegram Bot
+      summary: Update subscription
+      description: Updates an existing Telegram subscription
+      operationId: updateTelegramSubscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the subscription
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTelegramSubscriptionRequest'
+      responses:
+        '200':
+          description: Subscription updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Subscription updated successfully"
+                  data:
+                    $ref: '#/components/schemas/TelegramSubscriptionResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Telegram Bot
+      summary: Delete subscription
+      description: Permanently deletes a Telegram subscription
+      operationId: deleteTelegramSubscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the subscription
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Subscription deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Subscription deleted successfully"
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/telegram/subscriptions/stats:
+    get:
+      tags:
+        - Telegram Bot
+      summary: Get subscription statistics
+      description: Retrieves statistics about Telegram subscriptions
+      operationId: getTelegramSubscriptionStats
+      responses:
+        '200':
+          description: Subscription statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Subscription statistics retrieved successfully"
+                  data:
+                    type: object
+                    properties:
+                      total_subscriptions:
+                        type: integer
+                        example: 150
+                      active_subscriptions:
+                        type: integer
+                        example: 125
+                      inactive_subscriptions:
+                        type: integer
+                        example: 25
+                      subscriptions_by_project:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                        example:
+                          "project-1": 50
+                          "project-2": 75
+
+  /api/v1/telegram/projects/{projectId}/subscriptions:
+    get:
+      tags:
+        - Telegram Bot
+      summary: Get subscriptions by project
+      description: Retrieves all Telegram subscriptions for a specific project
+      operationId: getTelegramSubscriptionsByProject
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: UUID of the project
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of subscriptions per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Project subscriptions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Project subscriptions retrieved successfully"
+                  data:
+                    $ref: '#/components/schemas/TelegramSubscriptionListResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    # Project Schemas
+    CreateProjectRequest:
+      type: object
+      required:
+        - name
+        - repository_url
+        - webhook_secret
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Unique name for the project
+          example: "My Test Project"
+        repository_url:
+          type: string
+          format: uri
+          description: GitHub repository URL
+          example: "https://github.com/user/test-repo"
+        webhook_secret:
+          type: string
+          minLength: 10
+          description: Secret key for webhook signature verification
+          example: "my-secure-secret-key"
+        telegram_chat_id:
+          type: integer
+          format: int64
+          description: Optional Telegram chat ID for notifications
+          example: -1001234567890
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Updated project name
+          example: "Updated Project Name"
+        repository_url:
+          type: string
+          format: uri
+          description: Updated repository URL
+          example: "https://github.com/user/updated-repo"
+        webhook_secret:
+          type: string
+          minLength: 10
+          description: Updated webhook secret
+          example: "new-webhook-secret"
+        telegram_chat_id:
+          type: integer
+          format: int64
+          description: Updated Telegram chat ID
+          example: -1001234567891
+
+    ProjectResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique project identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          description: Project name
+          example: "My Test Project"
+        repository_url:
+          type: string
+          format: uri
+          description: GitHub repository URL
+          example: "https://github.com/user/test-repo"
+        status:
+          type: string
+          enum: [active, inactive, archived]
+          description: Current project status
+          example: "active"
+        telegram_chat_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: Telegram chat ID for notifications
+          example: -1001234567890
+        created_at:
+          type: string
+          format: date-time
+          description: Project creation timestamp
+          example: "2025-07-29T09:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2025-07-29T09:00:00Z"
+
+    ListProjectResponse:
+      type: object
+      properties:
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectResponse'
+        total:
+          type: integer
+          format: int64
+          description: Total number of projects matching filters
+          example: 25
+        limit:
+          type: integer
+          description: Number of projects per page
+          example: 10
+        offset:
+          type: integer
+          description: Number of projects skipped
+          example: 0
+
+    ProjectStatusUpdateRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [active, inactive, archived]
+          description: New project status
+          example: "active"
+
+    # Webhook Schemas
+    GitHubWebhookPayload:
+      type: object
+      properties:
+        action:
+          type: string
+          description: The action that triggered the webhook
+          example: "completed"
+        workflow_run:
+          $ref: '#/components/schemas/WorkflowRun'
+        repository:
+          $ref: '#/components/schemas/Repository'
+        sender:
+          $ref: '#/components/schemas/Sender'
+      additionalProperties: true
+
+    WorkflowRun:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 123456789
+        name:
+          type: string
+          example: "CI"
+        status:
+          type: string
+          example: "completed"
+        conclusion:
+          type: string
+          example: "success"
+        html_url:
+          type: string
+          format: uri
+          example: "https://github.com/user/repo/actions/runs/123456789"
+        run_number:
+          type: integer
+          example: 42
+        event:
+          type: string
+          example: "push"
+        head_branch:
+          type: string
+          example: "main"
+        head_sha:
+          type: string
+          example: "abc123def456"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Repository:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "test-repo"
+        full_name:
+          type: string
+          example: "user/test-repo"
+        html_url:
+          type: string
+          format: uri
+          example: "https://github.com/user/test-repo"
+
+    Sender:
+      type: object
+      properties:
+        login:
+          type: string
+          example: "username"
+
+    WebhookEventResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        project_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        event_type:
+          type: string
+          enum: [workflow_run, push, pull_request]
+          example: "workflow_run"
+        delivery_id:
+          type: string
+          example: "12345678-1234-1234-1234-123456789012"
+        processed_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-08-01T10:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-08-01T10:30:00Z"
+
+    # Dashboard Schemas
+    OverviewResponse:
+      type: object
+      properties:
+        total_projects:
+          type: integer
+          description: Total number of projects
+          example: 50
+        active_projects:
+          type: integer
+          description: Number of active projects
+          example: 42
+        total_builds:
+          type: integer
+          description: Total number of builds
+          example: 1250
+        successful_builds:
+          type: integer
+          description: Number of successful builds
+          example: 1125
+        failed_builds:
+          type: integer
+          description: Number of failed builds
+          example: 125
+        success_rate:
+          type: number
+          format: float
+          description: Build success rate (0-100)
+          example: 90.0
+        average_duration:
+          type: integer
+          description: Average build duration in seconds
+          example: 180
+        last_updated:
+          type: string
+          format: date-time
+          description: Last metrics update timestamp
+          example: "2025-08-01T10:00:00Z"
+
+    ProjectStatisticsResponse:
+      type: object
+      properties:
+        project_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        project_name:
+          type: string
+          example: "My Test Project"
+        total_builds:
+          type: integer
+          example: 150
+        successful_builds:
+          type: integer
+          example: 135
+        failed_builds:
+          type: integer
+          example: 15
+        success_rate:
+          type: number
+          format: float
+          example: 90.0
+        average_duration:
+          type: integer
+          description: Average build duration in seconds
+          example: 180
+        last_build_time:
+          type: string
+          format: date-time
+          example: "2025-08-01T09:45:00Z"
+        build_trends:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildTrendData'
+
+    BuildTrendData:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2025-08-01"
+        count:
+          type: integer
+          description: Total builds on this date
+          example: 25
+        success_count:
+          type: integer
+          description: Successful builds on this date
+          example: 22
+
+    BuildAnalyticsResponse:
+      type: object
+      properties:
+        time_range:
+          type: string
+          description: Analytics time range
+          example: "7d"
+        total_builds:
+          type: integer
+          example: 500
+        successful_builds:
+          type: integer
+          example: 450
+        failed_builds:
+          type: integer
+          example: 50
+        success_rate:
+          type: number
+          format: float
+          example: 90.0
+        average_duration:
+          type: integer
+          description: Average build duration in seconds
+          example: 180
+        builds_by_day:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildAnalyticsData'
+        duration_trends:
+          type: array
+          items:
+            $ref: '#/components/schemas/DurationTrendData'
+
+    BuildAnalyticsData:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2025-08-01"
+        total_builds:
+          type: integer
+          example: 75
+        successful_builds:
+          type: integer
+          example: 68
+        failed_builds:
+          type: integer
+          example: 7
+
+    DurationTrendData:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2025-08-01"
+        average_duration:
+          type: integer
+          description: Average build duration in seconds
+          example: 185
+
+    # Telegram Schemas
+    TelegramUpdate:
+      type: object
+      description: Telegram webhook update object
+      properties:
+        update_id:
+          type: integer
+          example: 123456789
+        message:
+          $ref: '#/components/schemas/TelegramMessage'
+        callback_query:
+          $ref: '#/components/schemas/TelegramCallbackQuery'
+      additionalProperties: true
+
+    TelegramMessage:
+      type: object
+      properties:
+        message_id:
+          type: integer
+          example: 123
+        from:
+          $ref: '#/components/schemas/TelegramUser'
+        chat:
+          $ref: '#/components/schemas/TelegramChat'
+        date:
+          type: integer
+          format: int64
+          example: 1722513600
+        text:
+          type: string
+          example: "/start"
+
+    TelegramCallbackQuery:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "callback123"
+        from:
+          $ref: '#/components/schemas/TelegramUser'
+        message:
+          $ref: '#/components/schemas/TelegramMessage'
+        data:
+          type: string
+          example: "subscribe_project_123"
+
+    TelegramUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 123456789
+        is_bot:
+          type: boolean
+          example: false
+        first_name:
+          type: string
+          example: "John"
+        last_name:
+          type: string
+          example: "Doe"
+        username:
+          type: string
+          example: "johndoe"
+
+    TelegramChat:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: -1001234567890
+        type:
+          type: string
+          enum: [private, group, supergroup, channel]
+          example: "private"
+        title:
+          type: string
+          example: "Project Notifications"
+        username:
+          type: string
+          example: "project_notifications"
+
+    CreateTelegramSubscriptionRequest:
+      type: object
+      required:
+        - project_id
+        - chat_id
+      properties:
+        project_id:
+          type: string
+          format: uuid
+          description: UUID of the project to subscribe to
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        chat_id:
+          type: integer
+          format: int64
+          description: Telegram chat ID
+          example: -1001234567890
+
+    UpdateTelegramSubscriptionRequest:
+      type: object
+      properties:
+        chat_id:
+          type: integer
+          format: int64
+          description: Updated Telegram chat ID
+          example: -1001234567891
+        is_active:
+          type: boolean
+          description: Subscription active status
+          example: true
+
+    TelegramSubscriptionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "456e7890-e89b-12d3-a456-426614174000"
+        project_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        chat_id:
+          type: integer
+          format: int64
+          example: -1001234567890
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-07-29T09:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-07-29T09:00:00Z"
+
+    TelegramSubscriptionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TelegramSubscriptionResponse'
+        total:
+          type: integer
+          format: int64
+          example: 50
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total_pages:
+          type: integer
+          example: 3
+
+    # Error Schemas
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Validation failed"
+        details:
+          type: string
+          description: Detailed error information
+          example: "Field 'name' is required"
+
+  parameters:
+    ProjectId:
+      name: id
+      in: path
+      required: true
+      description: Unique project identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+        example: "550e8400-e29b-41d4-a716-446655440000"
+
+  responses:
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            validation_error:
+              summary: Validation error example
+              value:
+                error: "Validation failed"
+                details: "Field 'name' is required"
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            not_found:
+              summary: Not found error example
+              value:
+                error: "project not found"
+
+    ConflictError:
+      description: Resource already exists or conflict occurred
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            conflict:
+              summary: Conflict error example
+              value:
+                error: "project with this name already exists"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            server_error:
+              summary: Internal server error example
+              value:
+                error: "Internal server error"
+
+  securitySchemes:
+    GitHubWebhookSignature:
+      type: apiKey
+      in: header
+      name: X-Hub-Signature-256
+      description: |
+        GitHub webhook signature for request verification. The signature is calculated using HMAC-SHA256 with the webhook secret.
+        
+        Format: `sha256={signature}`
+        
+        Example: `sha256=abc123def456...`
+
+tags:
+  - name: Health Check
+    description: System health and status monitoring endpoints
+  - name: Project Management
+    description: Complete CRUD operations for CI/CD projects
+  - name: Webhook Processing
+    description: GitHub webhook event processing and retrieval
+  - name: Dashboard Analytics
+    description: Real-time metrics, statistics, and build analytics
+  - name: Telegram Bot
+    description: Telegram bot integration and subscription management
+
+externalDocs:
+  description: Project Documentation
+  url: https://github.com/dewisartika8/CICD-Status-Notifier-Bot/tree/development/docs

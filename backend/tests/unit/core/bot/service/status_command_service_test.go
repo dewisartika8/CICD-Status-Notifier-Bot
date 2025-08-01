@@ -13,6 +13,14 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// Test constants to avoid duplication
+const (
+	testProjectName    = "test-project"
+	testRepositoryURL  = "https://github.com/test/repo"
+	testWebhookSecret  = "secret"
+	unknownProjectName = "unknown-project"
+)
+
 // MockProjectService implements port.ProjectService for testing
 type MockProjectService struct {
 	mock.Mock
@@ -99,37 +107,40 @@ func (m *MockProjectService) ListProjects(ctx context.Context, filters dto.ListP
 // GetProjectsWithTelegramChat mocks the GetProjectsWithTelegramChat method
 func (m *MockProjectService) GetProjectsWithTelegramChat(ctx context.Context) ([]*projectDomain.Project, error) {
 	args := m.Called(ctx)
-	if args.Get(0) == nil {
+	result := args.Get(0)
+	if result == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*projectDomain.Project), args.Error(1)
+	return result.([]*projectDomain.Project), args.Error(1)
 }
 
 // ActivateProject mocks the ActivateProject method
 func (m *MockProjectService) ActivateProject(ctx context.Context, id value_objects.ID) (*projectDomain.Project, error) {
 	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
+	project := args.Get(0)
+	if project == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*projectDomain.Project), args.Error(1)
+	return project.(*projectDomain.Project), args.Error(1)
 }
 
 // DeactivateProject mocks the DeactivateProject method
 func (m *MockProjectService) DeactivateProject(ctx context.Context, id value_objects.ID) (*projectDomain.Project, error) {
 	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
+	proj := args.Get(0)
+	if proj == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*projectDomain.Project), args.Error(1)
+	return proj.(*projectDomain.Project), args.Error(1)
 }
 
 // ArchiveProject mocks the ArchiveProject method
 func (m *MockProjectService) ArchiveProject(ctx context.Context, id value_objects.ID) (*projectDomain.Project, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
+	mockArgs := m.Called(ctx, id)
+	if mockArgs.Get(0) == nil {
+		return nil, mockArgs.Error(1)
 	}
-	return args.Get(0).(*projectDomain.Project), args.Error(1)
+	return mockArgs.Get(0).(*projectDomain.Project), mockArgs.Error(1)
 }
 
 // ValidateWebhookSecret mocks the ValidateWebhookSecret method
@@ -147,14 +158,14 @@ func (m *MockProjectService) CountProjects(ctx context.Context, filters dto.List
 // Ensure MockProjectService implements port.ProjectService
 var _ port.ProjectService = (*MockProjectService)(nil)
 
-func TestStatusCommandService_HandleStatusAllProjects(t *testing.T) {
+func TestStatusCommandServiceHandleStatusAllProjects(t *testing.T) {
 	// Create mock service
 	mockService := new(MockProjectService)
 	handler := service.NewStatusCommandService(mockService)
 
 	// Create test project
 	chatID := int64(123456789)
-	project, err := projectDomain.NewProject("test-project", "https://github.com/test/repo", "secret", &chatID)
+	project, err := projectDomain.NewProject(testProjectName, testRepositoryURL, testWebhookSecret, &chatID)
 	assert.NoError(t, err)
 
 	projects := []*projectDomain.Project{project}
@@ -167,7 +178,7 @@ func TestStatusCommandService_HandleStatusAllProjects(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Contains(t, response, "📊 **Overall Project Status**")
-		assert.Contains(t, response, "test-project")
+		assert.Contains(t, response, testProjectName)
 		assert.Contains(t, response, "✅")
 		assert.Contains(t, response, "Active")
 		mockService.AssertExpectations(t)
@@ -196,39 +207,39 @@ func TestStatusCommandService_HandleStatusAllProjects(t *testing.T) {
 	})
 }
 
-func TestStatusCommandService_HandleStatusSpecificProject(t *testing.T) {
+func TestStatusCommandServiceHandleStatusSpecificProject(t *testing.T) {
 	// Create mock service
 	mockService := new(MockProjectService)
 	handler := service.NewStatusCommandService(mockService)
 
 	// Create test project
 	chatID := int64(123456789)
-	project, err := projectDomain.NewProject("test-project", "https://github.com/test/repo", "secret", &chatID)
+	project, err := projectDomain.NewProject(testProjectName, testRepositoryURL, testWebhookSecret, &chatID)
 	assert.NoError(t, err)
 
 	// Test case 1: Project found
 	t.Run("Project found", func(t *testing.T) {
-		mockService.On("GetProjectByName", mock.Anything, "test-project").Return(project, nil).Once()
+		mockService.On("GetProjectByName", mock.Anything, testProjectName).Return(project, nil).Once()
 
-		response, err := handler.HandleStatusSpecificProject("test-project")
+		response, err := handler.HandleStatusSpecificProject(testProjectName)
 
 		assert.NoError(t, err)
-		assert.Contains(t, response, "📊 **Project Status: test-project**")
+		assert.Contains(t, response, "📊 **Project Status: "+testProjectName+"**")
 		assert.Contains(t, response, "✅")
 		assert.Contains(t, response, "Active")
-		assert.Contains(t, response, "https://github.com/test/repo")
+		assert.Contains(t, response, testRepositoryURL)
 		mockService.AssertExpectations(t)
 	})
 
 	// Test case 2: Project not found
 	t.Run("Project not found", func(t *testing.T) {
-		mockService.On("GetProjectByName", mock.Anything, "unknown-project").Return(nil, assert.AnError).Once()
+		mockService.On("GetProjectByName", mock.Anything, unknownProjectName).Return(nil, assert.AnError).Once()
 
-		response, err := handler.HandleStatusSpecificProject("unknown-project")
+		response, err := handler.HandleStatusSpecificProject(unknownProjectName)
 
 		assert.NoError(t, err)
 		assert.Contains(t, response, "❌ **Project not found**")
-		assert.Contains(t, response, "unknown-project")
+		assert.Contains(t, response, unknownProjectName)
 		mockService.AssertExpectations(t)
 	})
 
@@ -242,14 +253,14 @@ func TestStatusCommandService_HandleStatusSpecificProject(t *testing.T) {
 	})
 }
 
-func TestStatusCommandService_HandleProjectsList(t *testing.T) {
+func TestStatusCommandServiceHandleProjectsList(t *testing.T) {
 	// Create mock service
 	mockService := new(MockProjectService)
 	handler := service.NewStatusCommandService(mockService)
 
 	// Create test projects with different statuses
 	chatID := int64(123456789)
-	activeProject, err := projectDomain.NewProject("active-project", "https://github.com/test/active", "secret", &chatID)
+	activeProject, err := projectDomain.NewProject("active-project", testRepositoryURL, testWebhookSecret, &chatID)
 	assert.NoError(t, err)
 
 	projects := []*projectDomain.Project{activeProject}

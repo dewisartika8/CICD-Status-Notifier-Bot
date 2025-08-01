@@ -161,60 +161,54 @@
 
 ---
 
-## Sprint 3: Dashboard API & React Frontend Setup
+## Sprint 3: Dashboard Backend & Frontend Foundation
 **Duration:** Week 5-6  
-**Goal:** Develop dashboard API and initialize React frontend foundation
+**Goal:** Develop dashboard backend API and frontend foundation with analytics
 
 ### Sprint 3 Goals
-- Create comprehensive dashboard API
-- Initialize React frontend with TypeScript setup
-- Implement build metrics and analytics
-- Create basic dashboard UI components
+- Create comprehensive dashboard API endpoints
+- Implement analytics and metrics system
+- Build React frontend foundation
 - Add advanced bot commands
+- Implement real-time features
 
 ### User Stories
 
-#### Story 3.1: Dashboard API Development (10 points)
-**As a project manager, I want a web dashboard API to monitor CI/CD status so that the frontend can display project health**
+#### Story 3.1: Dashboard API & Analytics Backend (10 points)
+**As a frontend developer, I want comprehensive API endpoints so that the dashboard can display all monitoring data**
 - **Tasks:**
-  - Create dashboard API endpoints
-  - Implement project metrics calculation
-  - Add build history endpoints with pagination
-  - Create real-time status endpoints
-  - Add CORS configuration for frontend
+  - Create dashboard overview API endpoint with aggregated metrics
+  - Implement metrics calculation service
+  - Add build statistics endpoints
+  - Create analytics data aggregation
+  - Implement caching layer for performance
 
-#### Story 3.2: React Frontend Foundation (8 points)
-**As a frontend developer, I want a well-structured React setup so that I can build the dashboard UI**
+#### Story 3.2: React Dashboard Foundation (12 points)
+**As a user, I want a dashboard UI so that I can monitor all CI/CD activities**
 - **Tasks:**
-  - Initialize React project with Vite and TypeScript
-  - Set up Material-UI (MUI) with custom theme
-  - Configure Redux Toolkit and RTK Query
-  - Create basic project structure and routing
-  - Set up API service layer
+  - Setup React project with Vite, TypeScript, and MUI
+  - Implement dashboard layout with navigation
+  - Create project overview page with status cards
+  - Build basic project list view
+  - Integrate with backend API
 
-#### Story 3.3: Basic Dashboard Components (8 points)
-**As a user, I want to see basic dashboard interface so that I can view project status**
+#### Story 3.3: Real-time Features & WebSocket (8 points)
+**As a user, I want real-time updates so that I see live status changes**
 - **Tasks:**
-  - Create main layout with header and sidebar
-  - Implement project list component with cards
-  - Add basic status indicators and badges
-  - Create loading states and error handling
-  - Implement responsive design foundation
+  - Implement WebSocket server in Go
+  - Create event broadcasting system
+  - Add real-time build status updates
+  - Implement connection management
+  - Create WebSocket authentication
 
-#### Story 3.4: Analytics & Metrics (5 points)
-**As a DevOps engineer, I want to see build metrics so that I can analyze pipeline performance**
+#### Story 3.4: Advanced Bot Commands & Integration (5 points)
+**As a user, I want advanced bot commands so that I can interact with the dashboard**
 - **Tasks:**
-  - Implement build success rate calculation
-  - Add average build duration metrics
-  - Create build trends over time API
-  - Add performance optimization for metrics queries
-
-#### Story 3.5: Advanced Bot Commands (5 points)
-**As a user, I want advanced bot commands so that I can get detailed information**
-- **Tasks:**
-  - Implement `/history <project> [limit]` command
+  - Implement `/dashboard` command with deep linking
   - Add `/metrics <project>` command
-  - Enhance error messages and help text
+  - Create `/report` command for quick reports
+  - Enhance bot-dashboard integration
+  - Update help documentation
 
 ### Sprint 3 Acceptance Criteria
 - [ ] Dashboard API provides comprehensive project data
@@ -226,6 +220,21 @@
 - [ ] Performance meets requirements (<2s response time)
 - [ ] Frontend successfully connects to backend API
 
+# Sprint 3 Risk Assessment
+
+## High Priority Risks
+1. **Database Migration Complexity**
+   - Mitigation: Prepare rollback plan
+   - Owner: Backend team
+
+2. **Performance Testing Dependencies**
+   - Mitigation: Mock external services
+   - Owner: QA team
+
+3. **Security Implementation Time**
+   - Mitigation: Parallel development tracks
+   - Owner: Security lead
+
 ### Sprint 3 Testing Focus
 - Dashboard API endpoint tests
 - Metrics calculation accuracy tests
@@ -235,61 +244,54 @@
 
 ---
 
-## Sprint 4: Advanced Frontend Features & Production Deployment
+## Sprint 4: Advanced Features & Production Deployment
 **Duration:** Week 7-8  
-**Goal:** Complete advanced dashboard features, implement real-time updates, and finalize production deployment
+**Goal:** Complete advanced features, optimize performance, and deploy to production
 
 ### Sprint 4 Goals
-- Complete React dashboard with advanced features
-- Implement real-time WebSocket integration
-- Add data visualization and analytics
-- Finalize production deployment
+- Implement advanced dashboard features
+- Complete data visualization
+- Add notification management
+- Ensure production readiness
 - Complete comprehensive testing
 
 ### User Stories
 
-#### Story 4.1: Advanced Dashboard Features (12 points)
-**As a project manager, I want advanced dashboard capabilities so that I can analyze CI/CD performance**
+#### Story 4.1: Advanced API Features & Optimization (10 points)
+**As a system admin, I want advanced API features so that the system is production-ready**
 - **Tasks:**
-  - Implement project detail pages with comprehensive views
-  - Add interactive charts with Chart.js for build trends
-  - Create build history visualization with filters
-  - Implement project configuration management interface
-  - Add user management and settings pages
+  - Implement API rate limiting and throttling
+  - Add comprehensive error handling
+  - Create backup and restore endpoints
+  - Optimize database queries
+  - Implement API versioning
 
-#### Story 4.2: Real-time Updates & WebSocket (8 points)
-**As a user, I want real-time updates so that I see current status without refreshing**
+#### Story 4.2: Dashboard UI Completion & Visualization (12 points)
+**As a user, I want complete dashboard features so that I can fully monitor and manage projects**
 - **Tasks:**
-  - Implement WebSocket connection from frontend
-  - Add real-time status updates for builds
-  - Create live notifications for build events
-  - Handle connection management and reconnection
-  - Update Redux store with real-time data
+  - Implement data visualization with Recharts
+  - Create notification management UI
+  - Build project settings interface
+  - Add user preferences and customization
+  - Implement search and filtering
 
-#### Story 4.3: Data Analytics & Visualization (6 points)
-**As a DevOps engineer, I want comprehensive analytics so that I can optimize CI/CD performance**
+#### Story 4.3: Production Infrastructure & DevOps (8 points)
+**As a DevOps engineer, I want production-ready deployment so that the system runs reliably**
 - **Tasks:**
-  - Create analytics dashboard with success rate charts
-  - Implement build duration trend analysis
-  - Add project performance comparison features
-  - Create exportable reports functionality
-  - Implement responsive chart design
+  - Complete Docker production setup
+  - Create Kubernetes manifests
+  - Implement health check endpoints
+  - Setup monitoring and alerting
+  - Create deployment scripts
 
-#### Story 4.4: Production Deployment & Testing (8 points)
-**As a team, we want production-ready deployment so that the system can be reliably hosted**
+#### Story 4.4: Testing & Documentation Completion (5 points)
+**As a team, we want comprehensive testing and documentation**
 - **Tasks:**
-  - Complete Docker Compose production setup
-  - Implement environment-specific configurations
-  - Add comprehensive E2E testing with Playwright
-  - Create deployment CI/CD pipeline
-  - Complete security hardening and performance optimization
-
-#### Story 4.5: Final Polish & Documentation (3 points)
-**As a team, we want polished software and complete documentation so that the project is ready for handover**
-- **Tasks:**
-  - Complete user guide and API documentation
-  - Final UI/UX polish and accessibility improvements
-  - Performance optimization and bug fixes
+  - Write E2E tests with Playwright
+  - Create user documentation
+  - Build interactive API documentation
+  - Add inline code documentation
+  - Create deployment guide
 
 ### Sprint 4 Acceptance Criteria
 - [ ] Advanced dashboard features are fully functional
