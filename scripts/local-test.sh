@@ -44,7 +44,16 @@ check_docker() {
 # Clean up any existing containers
 cleanup() {
     print_status "Cleaning up existing containers..."
+    
+    # Stop any containers using our ports
+    docker stop $(docker ps -q --filter "publish=5434" --filter "publish=8082" --filter "publish=3002") 2>/dev/null || true
+    
+    # Clean up test compose
     docker-compose -f docker-compose.test.yml down --volumes --remove-orphans 2>/dev/null || true
+    
+    # Remove any containers with our naming pattern
+    docker rm $(docker ps -aq --filter "name=cicd*test*" --filter "name=*backend*test*" --filter "name=*frontend*test*" --filter "name=*postgres*test*") 2>/dev/null || true
+    
     docker system prune -f >/dev/null 2>&1 || true
     print_success "Cleanup completed"
 }
@@ -80,7 +89,7 @@ services:
       postgres-test:
         condition: service_healthy
     ports:
-      - "8082:8080"
+      - "8083:8080"
     environment:
       PORT: 8080
       DATABASE_URL: postgres://postgres:test_password_123@postgres-test:5432/cicd_notifier_staging?sslmode=disable
@@ -99,9 +108,9 @@ services:
       backend-test:
         condition: service_healthy
     ports:
-      - "3002:80"
+      - "3003:80"
     environment:
-      REACT_APP_API_URL: http://localhost:8082
+      REACT_APP_API_URL: http://localhost:8083
 
 volumes:
   postgres_test_data:
@@ -198,7 +207,7 @@ run_health_checks() {
     # Wait for backend
     print_status "Checking backend health..."
     for i in {1..24}; do
-        if curl -sf http://localhost:8082/health >/dev/null 2>&1; then
+        if curl -sf http://localhost:8083/health >/dev/null 2>&1; then
             print_success "Backend is healthy"
             break
         fi
@@ -208,7 +217,7 @@ run_health_checks() {
     
     # Test backend API
     print_status "Testing backend API..."
-    if curl -sf http://localhost:8082/api/v1/status >/dev/null 2>&1; then
+    if curl -sf http://localhost:8083/api/v1/status >/dev/null 2>&1; then
         print_success "Backend API is responding"
     else
         print_warning "Backend API test failed - checking logs..."
@@ -217,7 +226,7 @@ run_health_checks() {
     
     # Test frontend
     print_status "Testing frontend accessibility..."
-    if curl -sf http://localhost:3002 >/dev/null 2>&1; then
+    if curl -sf http://localhost:3003 >/dev/null 2>&1; then
         print_success "Frontend is accessible"
     else
         print_warning "Frontend test failed - checking logs..."
@@ -233,7 +242,7 @@ run_integration_tests() {
     
     # Test health endpoint
     echo "Testing health endpoint..."
-    if response=$(curl -s http://localhost:8082/health 2>/dev/null); then
+    if response=$(curl -s http://localhost:8083/health 2>/dev/null); then
         echo "✅ Health endpoint: $response"
     else
         echo "❌ Health endpoint failed"
@@ -241,7 +250,7 @@ run_integration_tests() {
     
     # Test status endpoint
     echo "Testing status endpoint..."
-    if response=$(curl -s http://localhost:8082/api/v1/status 2>/dev/null); then
+    if response=$(curl -s http://localhost:8083/api/v1/status 2>/dev/null); then
         echo "✅ Status endpoint: $response"
     else
         echo "❌ Status endpoint failed"
@@ -249,7 +258,7 @@ run_integration_tests() {
     
     # Test frontend
     echo "Testing frontend..."
-    if curl -s http://localhost:3002 2>/dev/null | grep -q "html\|HTML" >/dev/null 2>&1; then
+    if curl -s http://localhost:3003 2>/dev/null | grep -q "html\|HTML" >/dev/null 2>&1; then
         echo "✅ Frontend is serving HTML content"
     else
         echo "❌ Frontend test failed"
@@ -292,9 +301,9 @@ $(docker-compose -f docker-compose.test.yml logs --tail=10 postgres-test 2>/dev/
 
 ## URLs for Testing
 
-- Backend Health: http://localhost:8082/health
-- Backend API: http://localhost:8082/api/v1/status
-- Frontend: http://localhost:3002
+- Backend Health: http://localhost:8083/health
+- Backend API: http://localhost:8083/api/v1/status
+- Frontend: http://localhost:3003
 - Database: localhost:5434
 
 ## Notes
@@ -331,8 +340,8 @@ main() {
     echo "========================================"
     echo ""
     echo "🌐 Your services are running on:"
-    echo "   Backend:  http://localhost:8082"
-    echo "   Frontend: http://localhost:3002"
+    echo "   Backend:  http://localhost:8083"
+    echo "   Frontend: http://localhost:3003"
     echo "   Database: localhost:5434"
     echo ""
     echo "📊 View the test report: local-test-report.md"
