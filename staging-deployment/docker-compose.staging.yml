@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  postgres-staging:
+    image: postgres:15-alpine
+    container_name: cicd_postgres_staging_local
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend-staging:
+    image: ${BACKEND_IMAGE}
+    container_name: cicd_backend_staging_local
+    depends_on:
+      postgres-staging:
+        condition: service_healthy
+    ports:
+      - "8082:8080"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-staging:5432/${POSTGRES_DB}?sslmode=disable
+      PORT: 8080
+      ENV: staging
+      JWT_SECRET: ${JWT_SECRET}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  frontend-staging:
+    image: ${FRONTEND_IMAGE}
+    container_name: cicd_frontend_staging_local
+    depends_on:
+      backend-staging:
+        condition: service_healthy
+    ports:
+      - "3002:80"
+    environment:
+      REACT_APP_API_URL: http://localhost:8082
+    restart: unless-stopped
+
+volumes:
+  postgres_staging_data:

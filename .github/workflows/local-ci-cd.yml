@@ -1,0 +1,373 @@
+name: Local Testing CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, staging ]
+  pull_request:
+    branches: [ main, develop, staging ]
+
+env:
+  GO_VERSION: '1.23'
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Backend Tests
+  backend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: jQlwjVKoQw
+          POSTGRES_USER: postgres
+          POSTGRES_DB: cicd_notifier_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run tests
+      run: |
+        go test -v -race -coverprofile=coverage.out ./...
+        go tool cover -html=coverage.out -o coverage.html
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.out
+        flags: backend
+        name: backend-coverage
+
+  # Frontend Tests
+  frontend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests
+      run: npm test -- --coverage --watchAll=false
+
+    - name: Build frontend
+      run: npm run build
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./frontend/coverage/lcov.info
+        flags: frontend
+        name: frontend-coverage
+
+  # Build Docker Images
+  build-images:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    if: github.ref == 'refs/heads/staging'
+    
+    outputs:
+      backend-image: ${{ steps.meta-backend.outputs.tags }}
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for backend
+      id: meta-backend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: true
+        tags: ${{ steps.meta-backend.outputs.tags }}
+        labels: ${{ steps.meta-backend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Extract metadata for frontend
+      id: meta-frontend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: true
+        tags: ${{ steps.meta-frontend.outputs.tags }}
+        labels: ${{ steps.meta-frontend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # Local Docker Testing
+  docker-test:
+    runs-on: ubuntu-latest
+    needs: [build-images]
+    if: github.ref == 'refs/heads/staging'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create test environment
+      run: |
+        # Create docker-compose for testing
+        cat > docker-compose.test.yml << 'EOF'
+        version: '3.8'
+        services:
+          postgres-test:
+            image: postgres:15-alpine
+            environment:
+              POSTGRES_DB: cicd_notifier_staging
+              POSTGRES_USER: postgres
+              POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+            ports:
+              - "5434:5432"
+            healthcheck:
+              test: ["CMD-SHELL", "pg_isready -U postgres"]
+              interval: 10s
+              timeout: 5s
+              retries: 10
+
+          backend-test:
+            image: ${{ needs.build-images.outputs.backend-image }}
+            depends_on:
+              postgres-test:
+                condition: service_healthy
+            ports:
+              - "8082:8080"
+            environment:
+              PORT: 8080
+              DATABASE_URL: postgres://postgres:${{ secrets.POSTGRES_PASSWORD }}@postgres-test:5432/cicd_notifier_staging?sslmode=disable
+            healthcheck:
+              test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+              interval: 30s
+              timeout: 10s
+              retries: 5
+              start_period: 40s
+
+          frontend-test:
+            image: ${{ needs.build-images.outputs.frontend-image }}
+            depends_on:
+              backend-test:
+                condition: service_healthy
+            ports:
+              - "3002:80"
+            environment:
+              REACT_APP_API_URL: http://localhost:8082
+        EOF
+
+    - name: Start test environment
+      run: |
+        echo "Starting test environment..."
+        docker-compose -f docker-compose.test.yml up -d
+        
+        echo "Waiting for services to start..."
+        sleep 60
+        
+        echo "Checking service status..."
+        docker-compose -f docker-compose.test.yml ps
+
+    - name: Run health checks
+      run: |
+        echo "Testing database connectivity..."
+        docker exec $(docker-compose -f docker-compose.test.yml ps -q postgres-test) pg_isready -U postgres
+        
+        echo "Testing backend health..."
+        timeout 120 bash -c 'until curl -f http://localhost:8082/health; do sleep 5; done'
+        
+        echo "Testing backend API..."
+        curl -f http://localhost:8082/api/v1/status
+        
+        echo "Testing frontend accessibility..."
+        curl -f http://localhost:3002 | head -n 10
+
+    - name: Run integration tests
+      run: |
+        echo "Running integration tests..."
+        
+        # Test API endpoints
+        echo "Testing health endpoint..."
+        response=$(curl -s http://localhost:8082/health)
+        echo "Health response: $response"
+        
+        echo "Testing status endpoint..."
+        response=$(curl -s http://localhost:8082/api/v1/status)
+        echo "Status response: $response"
+        
+        echo "Testing frontend load..."
+        if curl -s http://localhost:3002 | grep -q "CICD Status Notifier Bot"; then
+          echo "Frontend is serving correctly"
+        else
+          echo "Frontend is not serving the expected content"
+          exit 1
+        fi
+
+    - name: Cleanup test environment
+      if: always()
+      run: |
+        echo "Cleaning up test environment..."
+        docker-compose -f docker-compose.test.yml down --volumes --remove-orphans
+        docker system prune -f
+
+  # Generate Test Report
+  generate-report:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test, build-images, docker-test]
+    if: always() && github.ref == 'refs/heads/staging'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Generate test report
+      run: |
+        cat > test-report.md << 'EOF'
+        # CI/CD Pipeline Test Report
+        
+        **Date**: $(date)
+        **Branch**: ${{ github.ref_name }}
+        **Commit**: ${{ github.sha }}
+        **Workflow**: ${{ github.workflow }}
+        
+        ## Test Results
+        
+        - Backend Tests: ${{ needs.backend-test.result }}
+        - Frontend Tests: ${{ needs.frontend-test.result }}
+        - Docker Build: ${{ needs.build-images.result }}
+        - Integration Tests: ${{ needs.docker-test.result }}
+        
+        ## Docker Images Built
+        
+        - Backend: ${{ needs.build-images.outputs.backend-image }}
+        - Frontend: ${{ needs.build-images.outputs.frontend-image }}
+        
+        ## Next Steps
+        
+        1. Review test results
+        2. Check Docker images in registry
+        3. Verify local deployment capabilities
+        4. Ready for production deployment
+        
+        ---
+        Generated by GitHub Actions
+        EOF
+
+    - name: Upload test report
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-report
+        path: test-report.md
+
+  # Comment on PR with results
+  comment-pr:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test, build-images, docker-test]
+    if: always() && github.event_name == 'pull_request'
+
+    steps:
+    - name: Comment PR
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const results = {
+            'Backend Tests': '${{ needs.backend-test.result }}',
+            'Frontend Tests': '${{ needs.frontend-test.result }}',
+            'Docker Build': '${{ needs.build-images.result }}',
+            'Integration Tests': '${{ needs.docker-test.result }}'
+          };
+          
+          let comment = '## 🧪 CI/CD Pipeline Results\n\n';
+          
+          for (const [job, result] of Object.entries(results)) {
+            const emoji = result === 'success' ? '✅' : result === 'failure' ? '❌' : '⏭️';
+            comment += `- ${emoji} ${job}: ${result}\n`;
+          }
+          
+          comment += '\n---\n';
+          comment += `**Commit**: ${context.sha.substring(0, 7)}\n`;
+          comment += `**Branch**: ${context.ref.replace('refs/heads/', '')}\n`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });

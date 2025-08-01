@@ -1,10 +1,11 @@
-name: CI/CD Pipeline
+name: Production CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop, staging ]
-  pull_request:
-    branches: [ main, develop, staging ]
+    branches: [ main ]
+    tags: [ 'v*' ]
+  release:
+    types: [ published ]
 
 env:
   GO_VERSION: '1.23'
