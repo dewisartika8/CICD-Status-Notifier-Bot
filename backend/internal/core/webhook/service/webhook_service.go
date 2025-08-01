@@ -193,8 +193,9 @@ func (s *webhookService) processWorkflowRunEvent(ctx context.Context, webhookEve
 	}
 
 	// Use repository info if available
-	if payload.Repository.HTMLURL != "" && commitSHA != "" {
-		buildURL = payload.Repository.HTMLURL + commitURLPath + commitSHA
+	repoURL := s.safeRepositoryURL(payload)
+	if repoURL != "" && commitSHA != "" {
+		buildURL = repoURL + commitURLPath + commitSHA
 	}
 
 	// Determine build status based on workflow conclusion
@@ -255,7 +256,7 @@ func (s *webhookService) processWorkflowRunEvent(ctx context.Context, webhookEve
 		}
 
 		message := fmt.Sprintf("🔔 %s %s for %s on branch %s",
-			payload.WorkflowRun.Name, statusText, payload.Repository.FullName, branch)
+			payload.WorkflowRun.Name, statusText, s.safeRepositoryName(payload), branch)
 
 		_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
 			ctx,
@@ -361,8 +362,9 @@ func (s *webhookService) extractCommitInfo(payload dto.GitHubActionsPayload) (re
 		lastCommit := payload.Commits[len(payload.Commits)-1]
 		buildURL := ""
 		commitID := s.safeString(lastCommit.ID)
-		if payload.Repository.HTMLURL != "" && commitID != "" {
-			buildURL = payload.Repository.HTMLURL + commitURLPath + commitID
+		repoURL := s.safeRepositoryURL(payload)
+		if repoURL != "" && commitID != "" {
+			buildURL = repoURL + commitURLPath + commitID
 		}
 
 		result = commitInfo{
@@ -388,6 +390,25 @@ func (s *webhookService) safeString(str string) string {
 	return str
 }
 
+// safeRepositoryName safely extracts repository name from payload
+func (s *webhookService) safeRepositoryName(payload dto.GitHubActionsPayload) string {
+	if payload.Repository.FullName != "" {
+		return payload.Repository.FullName
+	}
+	if payload.Repository.Name != "" {
+		return payload.Repository.Name
+	}
+	return "Unknown Repository"
+}
+
+// safeRepositoryURL safely extracts repository HTML URL from payload
+func (s *webhookService) safeRepositoryURL(payload dto.GitHubActionsPayload) string {
+	if payload.Repository.HTMLURL != "" {
+		return payload.Repository.HTMLURL
+	}
+	return ""
+}
+
 // createFallbackCommitInfo creates fallback commit info when HeadCommit and Commits are not available
 func (s *webhookService) createFallbackCommitInfo(payload dto.GitHubActionsPayload) commitInfo {
 	sha := payload.After
@@ -404,8 +425,10 @@ func (s *webhookService) createFallbackCommitInfo(payload dto.GitHubActionsPaylo
 	}
 
 	buildURL := ""
-	if payload.Repository.HTMLURL != "" && sha != "" && sha != "unknown" {
-		buildURL = payload.Repository.HTMLURL + commitURLPath + sha
+	// Safely access Repository fields
+	repoURL := s.safeRepositoryURL(payload)
+	if repoURL != "" && sha != "" && sha != "unknown" {
+		buildURL = repoURL + commitURLPath + sha
 	}
 
 	return commitInfo{
@@ -419,18 +442,23 @@ func (s *webhookService) createFallbackCommitInfo(payload dto.GitHubActionsPaylo
 
 // buildNotificationMessage builds notification message with safe string handling
 func (s *webhookService) buildNotificationMessage(payload dto.GitHubActionsPayload, branch string, commit commitInfo) string {
-	repoName := payload.Repository.FullName
-	if repoName == "" {
-		repoName = "Unknown Repository"
+	// Safely extract repository name with fallback
+	repoName := s.safeRepositoryName(payload)
+
+	// Safely extract author name with fallback
+	authorName := "Unknown Author"
+	if commit.AuthorName != "" {
+		authorName = commit.AuthorName
 	}
 
-	authorName := commit.AuthorName
-	if authorName == "" {
-		authorName = "Unknown Author"
+	// Safely extract commit message with fallback
+	commitMessage := "No message"
+	if commit.Message != "" {
+		commitMessage = commit.Message
 	}
 
 	return fmt.Sprintf("📤 *Push Event*\n*Project:* %s\n*Branch:* %s\n*Commit:* %s\n*Author:* %s",
-		repoName, branch, commit.Message, authorName)
+		repoName, branch, commitMessage, authorName)
 }
 
 // processPullRequestEvent processes pull request events
@@ -500,7 +528,7 @@ func (s *webhookService) processPullRequestEvent(ctx context.Context, webhookEve
 		}
 
 		message := fmt.Sprintf("📋 *Pull Request %s*\n*Project:* %s\n*Title:* %s\n*Branch:* %s → %s\n*Author:* %s",
-			actionText, payload.Repository.FullName, pr.Title, pr.Head.Ref, pr.Base.Ref, authorName)
+			actionText, s.safeRepositoryName(payload), pr.Title, pr.Head.Ref, pr.Base.Ref, authorName)
 
 		// Send notifications
 		_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
