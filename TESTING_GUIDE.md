@@ -9,20 +9,20 @@ Proyek ini menggunakan strategi testing multi-level untuk memastikan deployment 
 ### 1. Staging Environment (Port 8082/3002)
 - **Purpose**: Testing comprehensive sebelum production
 - **Trigger**: Push ke branch `staging`
-- **URL**: http://172.16.19.11:3002
-- **API**: http://172.16.19.11:8082
+- **URL**: http://localhost:3002
+- **API**: http://localhost:8082
 
 ### 2. Test Environment (Port 8081/3001)  
 - **Purpose**: Development testing dan PR validation
 - **Trigger**: Push ke branch `develop` atau pull requests
-- **URL**: http://172.16.19.11:3001
-- **API**: http://172.16.19.11:8081
+- **URL**: http://localhost:3001
+- **API**: http://localhost:8081
 
 ### 3. Production Environment (Port 80/8080)
 - **Purpose**: Live production application
 - **Trigger**: Push ke branch `main`
-- **URL**: http://172.16.19.11
-- **API**: http://172.16.19.11:8080
+- **URL**: http://localhost
+- **API**: http://localhost:8080
 
 ## 🚀 How to Test
 
@@ -89,34 +89,34 @@ Automated workflow akan:
 
 ### 1. Check Container Status
 ```bash
-ssh 172.16.19.11 "cd /opt/cicd-notifier-staging && docker-compose -f docker-compose.staging.yml ps"
+ssh localhost "cd /opt/cicd-notifier-staging && docker-compose -f docker-compose.staging.yml ps"
 ```
 
 ### 2. View Container Logs
 ```bash
 # Backend logs
-ssh 172.16.19.11 "docker logs cicd_backend_staging --tail=50"
+ssh localhost "docker logs cicd_backend_staging --tail=50"
 
 # Frontend logs  
-ssh 172.16.19.11 "docker logs cicd_frontend_staging --tail=50"
+ssh localhost "docker logs cicd_frontend_staging --tail=50"
 
 # Database logs
-ssh 172.16.19.11 "docker logs cicd_postgres_staging --tail=50"
+ssh localhost "docker logs cicd_postgres_staging --tail=50"
 ```
 
 ### 3. Check Server Resources
 ```bash
-ssh 172.16.19.11 "df -h && free -h && docker system df"
+ssh localhost "df -h && free -h && docker system df"
 ```
 
 ### 4. Test Network Connectivity
 ```bash
 # From outside server
-curl -v http://172.16.19.11:8082/health
-curl -v http://172.16.19.11:3002
+curl -v http://localhost:8082/health
+curl -v http://localhost:3002
 
 # From inside server
-ssh 172.16.19.11 "curl -v http://localhost:8082/health"
+ssh localhost "curl -v http://localhost:8082/health"
 ```
 
 ## 🛠️ Common Issues & Solutions
@@ -129,10 +129,10 @@ ssh 172.16.19.11 "curl -v http://localhost:8082/health"
 chmod 600 ~/.ssh/id_rsa
 
 # Test SSH connection
-ssh -v 172.16.19.11
+ssh -v localhost
 
 # Verify server is accessible
-ping 172.16.19.11
+ping localhost
 ```
 
 ### Issue 2: Docker Image Pull Failed
@@ -151,10 +151,10 @@ docker pull ghcr.io/dewisartika8/cicd-status-notifier-bot-backend:staging-test
 **Solutions**:
 ```bash
 # Stop existing containers
-ssh 172.16.19.11 "cd /opt/cicd-notifier-staging && docker-compose -f docker-compose.staging.yml down"
+ssh localhost "cd /opt/cicd-notifier-staging && docker-compose -f docker-compose.staging.yml down"
 
 # Check what's using the port
-ssh 172.16.19.11 "netstat -tulpn | grep :8082"
+ssh localhost "netstat -tulpn | grep :8082"
 ```
 
 ### Issue 4: Health Check Timeout
@@ -229,13 +229,13 @@ ssh 172.16.19.11 "netstat -tulpn | grep :8082"
 
 ### Rollback Staging Deployment
 ```bash
-ssh 172.16.19.11 "cd /opt/cicd-notifier-staging && docker-compose -f docker-compose.staging.yml down"
+ssh localhost "cd /opt/cicd-notifier-staging && docker-compose -f docker-compose.staging.yml down"
 ```
 
 ### Emergency Access to Server
 ```bash
 # Direct SSH access
-ssh 172.16.19.11
+ssh localhost
 
 # Check all running services
 docker ps -a

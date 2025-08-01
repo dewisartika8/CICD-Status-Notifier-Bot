@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  TARGET_HOST: 172.16.19.11
+  TARGET_HOST: localhost
 
 jobs:
   health-check:

@@ -106,19 +106,19 @@ git push origin main
 ## 🌐 Access Points
 
 ### Staging Environment
-- **Frontend**: http://172.16.19.11:3002
-- **Backend API**: http://172.16.19.11:8082
-- **Health Check**: http://172.16.19.11:8082/health
+- **Frontend**: http://localhost:3002
+- **Backend API**: http://localhost:8082
+- **Health Check**: http://localhost:8082/health
 
 ### Test Environment
-- **Frontend**: http://172.16.19.11:3001
-- **Backend API**: http://172.16.19.11:8081
-- **Health Check**: http://172.16.19.11:8081/health
+- **Frontend**: http://localhost:3001
+- **Backend API**: http://localhost:8081
+- **Health Check**: http://localhost:8081/health
 
 ### Production Environment  
-- **Frontend**: http://172.16.19.11
-- **Backend API**: http://172.16.19.11:8080
-- **Health Check**: http://172.16.19.11:8080/health
+- **Frontend**: http://localhost
+- **Backend API**: http://localhost:8080
+- **Health Check**: http://localhost:8080/health
 
 ## 📋 Workflow Triggers
 

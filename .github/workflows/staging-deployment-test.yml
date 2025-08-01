@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  TARGET_HOST: 172.16.19.11
+  TARGET_HOST: localhost
   GO_VERSION: '1.23'
   NODE_VERSION: '18'
 

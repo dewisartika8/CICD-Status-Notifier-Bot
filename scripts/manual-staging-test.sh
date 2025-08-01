@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-TARGET_HOST="172.16.19.11"
+TARGET_HOST="localhost"
 STAGING_BACKEND_PORT="8082"
 STAGING_FRONTEND_PORT="3002"
 STAGING_DB_PORT="5434"
@@ -281,11 +281,9 @@ services:
         condition: service_healthy
     ports:
       - "3002:80"
-    environment:
-      REACT_APP_API_URL: http://172.16.19.11:8082
-    restart: unless-stopped
-
-volumes:
+              environment:
+                REACT_APP_API_URL: http://localhost:8082
+              restart: unless-stoppedvolumes:
   postgres_staging_data:
 COMPOSEEOF
 

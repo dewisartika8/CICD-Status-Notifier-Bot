@@ -166,20 +166,20 @@ Configure branch protection for `main` branch:
 ## Deployment Environments
 
 ### Staging Environment
-- **URL**: `http://172.16.19.11:3002`
-- **API**: `http://172.16.19.11:8082`
+- **URL**: `http://localhost:3002`
+- **API**: `http://localhost:8082`
 - **Database**: PostgreSQL on port 5434
 - **Triggers**: Push to `staging` branch
 
 ### Test Environment
-- **URL**: `http://172.16.19.11:3001`
-- **API**: `http://172.16.19.11:8081`
+- **URL**: `http://localhost:3001`
+- **API**: `http://localhost:8081`
 - **Database**: PostgreSQL on port 5433
 - **Triggers**: Push to `develop` or pull requests
 
 ### Production Environment
-- **URL**: `http://172.16.19.11`
-- **API**: `http://172.16.19.11:8080`
+- **URL**: `http://localhost`
+- **API**: `http://localhost:8080`
 - **Database**: PostgreSQL on port 5432
 - **Triggers**: Push to `main` branch
 

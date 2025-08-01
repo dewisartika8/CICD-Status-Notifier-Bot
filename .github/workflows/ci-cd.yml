@@ -11,7 +11,7 @@ env:
   NODE_VERSION: '18'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  TARGET_HOST: 127.0.0.1
+  TARGET_HOST: localhost
 
 jobs:
   # Backend Tests and Analysis
