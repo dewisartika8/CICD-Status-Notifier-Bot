@@ -10,13 +10,13 @@ import (
 // WebhookEventModel represents the database model for webhook events
 type WebhookEventModel struct {
 	ID          uuid.UUID  `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
-	ProjectID   uuid.UUID  `gorm:"type:uuid;not null;index" json:"project_id"`
-	EventType   string     `gorm:"type:varchar(50);not null;index" json:"event_type"`
+	ProjectID   uuid.UUID  `gorm:"type:uuid;not null;index:idx_webhook_events_project_id;constraint:fk_webhook_events_project_id,OnDelete:CASCADE" json:"project_id"`
+	EventType   string     `gorm:"type:varchar(50);not null;index:idx_webhook_events_event_type" json:"event_type"`
 	Payload     string     `gorm:"type:jsonb;not null" json:"payload"`
 	Signature   string     `gorm:"type:varchar(255);not null" json:"signature"`
-	DeliveryID  string     `gorm:"type:varchar(255);index" json:"delivery_id"`
-	ProcessedAt *time.Time `gorm:"type:timestamp" json:"processed_at"`
-	CreatedAt   time.Time  `gorm:"type:timestamp;default:CURRENT_TIMESTAMP" json:"created_at"`
+	DeliveryID  string     `gorm:"type:varchar(255);index:idx_webhook_events_delivery_id;uniqueIndex:uk_webhook_events_delivery_id,where:delivery_id IS NOT NULL" json:"delivery_id"`
+	ProcessedAt *time.Time `gorm:"type:timestamp;index:idx_webhook_events_processed_at" json:"processed_at"`
+	CreatedAt   time.Time  `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;index:idx_webhook_events_created_at" json:"created_at"`
 }
 
 // TableName specifies the table name for GORM

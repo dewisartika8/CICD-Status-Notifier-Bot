@@ -11,11 +11,11 @@ import (
 
 // BuildEventModel represents the GORM model for build events
 type BuildEventModel struct {
-	ID              uuid.UUID       `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
-	ProjectID       uuid.UUID       `gorm:"type:uuid;not null;index" json:"project_id"`
-	EventType       string          `gorm:"type:varchar(50);not null;index" json:"event_type"`
-	Status          string          `gorm:"type:varchar(20);not null;index" json:"status"`
-	Branch          string          `gorm:"type:varchar(255);not null;index" json:"branch"`
+	ID              uuid.UUID       `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ProjectID       uuid.UUID       `gorm:"type:uuid;not null;index:idx_build_events_project_id" json:"project_id"`
+	EventType       string          `gorm:"type:varchar(50);not null;index:idx_build_events_event_type" json:"event_type"`
+	Status          string          `gorm:"type:varchar(20);not null;index:idx_build_events_status" json:"status"`
+	Branch          string          `gorm:"type:varchar(255);not null;index:idx_build_events_branch" json:"branch"`
 	CommitSHA       string          `gorm:"type:varchar(40)" json:"commit_sha"`
 	CommitMessage   string          `gorm:"type:text" json:"commit_message"`
 	AuthorName      string          `gorm:"type:varchar(255)" json:"author_name"`
@@ -23,9 +23,9 @@ type BuildEventModel struct {
 	BuildURL        string          `gorm:"type:varchar(500)" json:"build_url"`
 	DurationSeconds *int            `gorm:"type:integer" json:"duration_seconds"`
 	WebhookPayload  json.RawMessage `gorm:"type:jsonb" json:"webhook_payload"`
-	CreatedAt       time.Time       `gorm:"type:timestamp with time zone;default:now()" json:"created_at"`
+	CreatedAt       time.Time       `gorm:"type:timestamp with time zone;default:now();index:idx_build_events_created_at" json:"created_at"`
 	UpdatedAt       time.Time       `gorm:"type:timestamp with time zone;default:now()" json:"updated_at"`
-	DeletedAt       gorm.DeletedAt  `gorm:"index" json:"deleted_at,omitempty"`
+	DeletedAt       gorm.DeletedAt  `gorm:"index:idx_build_events_deleted_at" json:"deleted_at,omitempty"`
 
 	// Relationships
 	Project ProjectModel `gorm:"foreignKey:ProjectID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
