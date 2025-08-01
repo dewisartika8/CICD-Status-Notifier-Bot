@@ -4,13 +4,16 @@ import (
 	"log"
 	"time"
 
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/dashboard"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/health"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/project"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/telegram"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/webhook"
+	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/repository/memory"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/repository/postgres"
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/config"
 	bs "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/build/service"
+	dashboardService "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/dashboard/service"
 	subscription "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/notification/service/subscription"
 	ps "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/project/service"
 	ws "github.com/dewisartika8/cicd-status-notifier-bot/internal/core/webhook/service"
@@ -57,6 +60,13 @@ func main() {
 	webhookEventRepo := postgres.NewWebhookEventRepository(db)
 	telegramSubscriptionRepo := postgres.NewTelegramSubscriptionRepository(db)
 
+	// Initialize dashboard-specific repositories
+	dashboardBuildEventRepo := postgres.NewDashboardBuildEventRepository(db)
+	dashboardProjectRepo := postgres.NewDashboardProjectRepository(db)
+
+	// Initialize cache service
+	cacheService := memory.NewInMemoryCache()
+
 	// Initialize services
 	projectService := ps.NewProjectService(ps.Dep{
 		ProjectRepo: projectRepo,
@@ -64,6 +74,13 @@ func main() {
 	buildService := bs.NewBuildEventService(bs.Dep{
 		BuildEventRepo: buildEventRepo,
 	})
+
+	// Initialize dashboard service
+	dashboardSvc := dashboardService.NewService(
+		dashboardBuildEventRepo,
+		dashboardProjectRepo,
+		cacheService,
+	)
 
 	// Initialize telegram subscription service
 	telegramSubscriptionService := subscription.NewTelegramSubscriptionService(subscription.Dep{
@@ -90,16 +107,18 @@ func main() {
 	})
 	webhookHandler := webhook.NewWebhookHandler(webhookService, logger)
 	telegramHandler := telegram.NewTelegramHandler(cfg, telegramSubscriptionService, logger)
+	dashboardHandler := dashboard.NewHandler(dashboardSvc)
 
 	// run APP in http server
 	// inject all usecases here
 	appService := app.Init(app.Dep{
-		AppConfig:       cfg,
-		HealthHandler:   healthHandler,
-		ProjectHandler:  projectHandler,
-		WebhookHandler:  webhookHandler,
-		TelegramHandler: telegramHandler,
-		Logger:          logger,
+		AppConfig:        cfg,
+		HealthHandler:    healthHandler,
+		ProjectHandler:   projectHandler,
+		WebhookHandler:   webhookHandler,
+		TelegramHandler:  telegramHandler,
+		DashboardHandler: dashboardHandler,
+		Logger:           logger,
 	})
 	appService.Run() // start http server
 }

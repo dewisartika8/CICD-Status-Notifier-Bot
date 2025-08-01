@@ -13,6 +13,16 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// Test constants to avoid duplication
+const (
+	testProjectName = "test-project"
+	testRepoURL     = "https://github.com/test/repo"
+	testSecret      = "secret"
+	unknownProject  = "unknown-project"
+	activeProject   = "active-project"
+	testActiveURL   = "https://github.com/test/active"
+)
+
 // MockProjectService implements port.ProjectService for testing
 type MockProjectService struct {
 	mock.Mock
@@ -99,37 +109,41 @@ func (m *MockProjectService) ListProjects(ctx context.Context, filters dto.ListP
 // GetProjectsWithTelegramChat mocks the GetProjectsWithTelegramChat method
 func (m *MockProjectService) GetProjectsWithTelegramChat(ctx context.Context) ([]*projectDomain.Project, error) {
 	args := m.Called(ctx)
-	if args.Get(0) == nil {
+	result := args.Get(0)
+	if result == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*projectDomain.Project), args.Error(1)
+	return result.([]*projectDomain.Project), args.Error(1)
 }
 
 // ActivateProject mocks the ActivateProject method
 func (m *MockProjectService) ActivateProject(ctx context.Context, id value_objects.ID) (*projectDomain.Project, error) {
 	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
+	result := args.Get(0)
+	if result == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*projectDomain.Project), args.Error(1)
+	return result.(*projectDomain.Project), args.Error(1)
 }
 
 // DeactivateProject mocks the DeactivateProject method
 func (m *MockProjectService) DeactivateProject(ctx context.Context, id value_objects.ID) (*projectDomain.Project, error) {
 	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
+	deactivateResult := args.Get(0)
+	if deactivateResult == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*projectDomain.Project), args.Error(1)
+	return deactivateResult.(*projectDomain.Project), args.Error(1)
 }
 
 // ArchiveProject mocks the ArchiveProject method
 func (m *MockProjectService) ArchiveProject(ctx context.Context, id value_objects.ID) (*projectDomain.Project, error) {
 	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
+	archiveResult := args.Get(0)
+	if archiveResult == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*projectDomain.Project), args.Error(1)
+	return archiveResult.(*projectDomain.Project), args.Error(1)
 }
 
 // ValidateWebhookSecret mocks the ValidateWebhookSecret method
@@ -147,14 +161,14 @@ func (m *MockProjectService) CountProjects(ctx context.Context, filters dto.List
 // Ensure MockProjectService implements port.ProjectService
 var _ port.ProjectService = (*MockProjectService)(nil)
 
-func TestStatusCommandHandler_HandleStatusAllProjects(t *testing.T) {
+func TestStatusCommandHandlerHandleStatusAllProjects(t *testing.T) {
 	// Create mock service
 	mockService := new(MockProjectService)
 	handler := service.NewStatusCommandService(mockService)
 
 	// Create test project
 	chatID := int64(123456789)
-	project, err := projectDomain.NewProject("test-project", "https://github.com/test/repo", "secret", &chatID)
+	project, err := projectDomain.NewProject(testProjectName, testRepoURL, testSecret, &chatID)
 	assert.NoError(t, err)
 
 	projects := []*projectDomain.Project{project}
@@ -167,7 +181,7 @@ func TestStatusCommandHandler_HandleStatusAllProjects(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Contains(t, response, "📊 **Overall Project Status**")
-		assert.Contains(t, response, "test-project")
+		assert.Contains(t, response, testProjectName)
 		assert.Contains(t, response, "✅")
 		assert.Contains(t, response, "Active")
 		mockService.AssertExpectations(t)
@@ -196,39 +210,39 @@ func TestStatusCommandHandler_HandleStatusAllProjects(t *testing.T) {
 	})
 }
 
-func TestStatusCommandHandler_HandleStatusSpecificProject(t *testing.T) {
+func TestStatusCommandHandlerHandleStatusSpecificProject(t *testing.T) {
 	// Create mock service
 	mockService := new(MockProjectService)
 	handler := service.NewStatusCommandService(mockService)
 
 	// Create test project
 	chatID := int64(123456789)
-	project, err := projectDomain.NewProject("test-project", "https://github.com/test/repo", "secret", &chatID)
+	project, err := projectDomain.NewProject(testProjectName, testRepoURL, testSecret, &chatID)
 	assert.NoError(t, err)
 
 	// Test case 1: Project found
 	t.Run("Project found", func(t *testing.T) {
-		mockService.On("GetProjectByName", mock.Anything, "test-project").Return(project, nil).Once()
+		mockService.On("GetProjectByName", mock.Anything, testProjectName).Return(project, nil).Once()
 
-		response, err := handler.HandleStatusSpecificProject("test-project")
+		response, err := handler.HandleStatusSpecificProject(testProjectName)
 
 		assert.NoError(t, err)
-		assert.Contains(t, response, "📊 **Project Status: test-project**")
+		assert.Contains(t, response, "📊 **Project Status: "+testProjectName+"**")
 		assert.Contains(t, response, "✅")
 		assert.Contains(t, response, "Active")
-		assert.Contains(t, response, "https://github.com/test/repo")
+		assert.Contains(t, response, testRepoURL)
 		mockService.AssertExpectations(t)
 	})
 
 	// Test case 2: Project not found
 	t.Run("Project not found", func(t *testing.T) {
-		mockService.On("GetProjectByName", mock.Anything, "unknown-project").Return(nil, assert.AnError).Once()
+		mockService.On("GetProjectByName", mock.Anything, unknownProject).Return(nil, assert.AnError).Once()
 
-		response, err := handler.HandleStatusSpecificProject("unknown-project")
+		response, err := handler.HandleStatusSpecificProject(unknownProject)
 
 		assert.NoError(t, err)
 		assert.Contains(t, response, "❌ **Project not found**")
-		assert.Contains(t, response, "unknown-project")
+		assert.Contains(t, response, unknownProject)
 		mockService.AssertExpectations(t)
 	})
 
@@ -242,17 +256,17 @@ func TestStatusCommandHandler_HandleStatusSpecificProject(t *testing.T) {
 	})
 }
 
-func TestStatusCommandHandler_HandleProjectsList(t *testing.T) {
+func TestStatusCommandHandlerHandleProjectsList(t *testing.T) {
 	// Create mock service
 	mockService := new(MockProjectService)
 	handler := service.NewStatusCommandService(mockService)
 
 	// Create test projects with different statuses
 	chatID := int64(123456789)
-	activeProject, err := projectDomain.NewProject("active-project", "https://github.com/test/active", "secret", &chatID)
+	activeProjectObj, err := projectDomain.NewProject(activeProject, testActiveURL, testSecret, &chatID)
 	assert.NoError(t, err)
 
-	projects := []*projectDomain.Project{activeProject}
+	projects := []*projectDomain.Project{activeProjectObj}
 
 	// Test case 1: Projects list success
 	t.Run("Projects list success", func(t *testing.T) {
@@ -262,7 +276,7 @@ func TestStatusCommandHandler_HandleProjectsList(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Contains(t, response, "📋 **Monitored Projects**")
-		assert.Contains(t, response, "active-project")
+		assert.Contains(t, response, activeProject)
 		assert.Contains(t, response, "Quick Commands")
 		mockService.AssertExpectations(t)
 	})

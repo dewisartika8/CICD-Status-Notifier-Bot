@@ -15,9 +15,32 @@ import (
 )
 
 const (
-	IntTestMessage   = "Integration test message"
-	IntTestSubject   = "Integration test"
-	IntTestRecipient = "int-test-user"
+	IntTestMessage      = "Integration test message"
+	IntTestSubject      = "Integration test"
+	IntTestRecipient    = "int-test-user"
+	TestMessage         = "Test Message"
+	TestSubject         = "Test Subject"
+	TestUser            = "test-user"
+	TestEmail           = "test@example.com"
+	TestTelegramMsgID   = "tg-msg-123"
+	TestEmailMsgID      = "email-msg-123"
+	TestMsgID           = "msg-123"
+	TestGenericSubject  = "Test"
+	RateLimitTestEmail  = "rate-limit-test@example.com"
+	LowPriorityUser     = "low-priority-user"
+	HighPriorityUser    = "high-priority-user"
+	LowPriorityMessage  = "Low priority message"
+	HighPriorityMessage = "High priority message"
+	NotRegisteredError  = "not registered"
+
+	// Test configuration constants
+	MaxRetries          = 3
+	MaxRateLimit        = 30
+	EmailRateLimit      = 10
+	ProcessQueueLimit   = 10
+	LowPriority         = 1
+	HighPriority        = 5
+	DefaultAttemptCount = 1
 )
 
 // Mock delivery channel for integration testing
@@ -46,11 +69,11 @@ func (m *MockIntegrationDeliveryChannel) IsAvailable(ctx context.Context) bool {
 }
 
 func (m *MockIntegrationDeliveryChannel) GetMaxRetries() int {
-	return 3
+	return MaxRetries
 }
 
 func (m *MockIntegrationDeliveryChannel) GetRateLimitInfo() (int, time.Duration) {
-	return 30, time.Minute
+	return MaxRateLimit, time.Minute
 }
 
 // Mock retry service for integration testing
@@ -61,7 +84,7 @@ func (m *MockIntegrationRetryService) CalculateRetryDelay(ctx context.Context, c
 }
 
 func (m *MockIntegrationRetryService) ShouldRetryNotification(ctx context.Context, channel domain.NotificationChannel, attemptCount int, lastError error) (bool, error) {
-	return attemptCount < 3, nil
+	return attemptCount < MaxRetries, nil
 }
 
 // Implement all other required methods with empty implementations
@@ -106,7 +129,7 @@ func TestNotificationDeliveryIntegration(t *testing.T) {
 
 	// Setup mock delivery channel
 	mockChannel := NewMockIntegrationDeliveryChannel(domain.NotificationChannelTelegram)
-	mockChannel.On("Send", mock.Anything, IntTestRecipient, IntTestSubject, IntTestMessage).Return("msg-123", nil)
+	mockChannel.On("Send", mock.Anything, IntTestRecipient, IntTestSubject, IntTestMessage).Return(TestMsgID, nil)
 
 	// Register delivery channel
 	err := deliveryService.RegisterDeliveryChannel(mockChannel)
@@ -129,7 +152,7 @@ func TestNotificationDeliveryIntegration(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Process the queue
-	err = deliveryService.ProcessQueue(ctx, 10)
+	err = deliveryService.ProcessQueue(ctx, ProcessQueueLimit)
 	assert.NoError(t, err)
 
 	// Assert - Verify the notification was processed
@@ -151,10 +174,10 @@ func TestRateLimitingIntegration(t *testing.T) {
 
 	ctx := context.Background()
 	channel := domain.NotificationChannelEmail // Email has lower limit (10)
-	recipient := "rate-limit-test@example.com"
+	recipient := RateLimitTestEmail
 
 	// Act - Make requests up to the limit
-	for i := 0; i < 10; i++ {
+	for i := 0; i < EmailRateLimit; i++ {
 		allowed, err := deliveryService.CheckRateLimit(ctx, channel, recipient)
 		assert.NoError(t, err)
 		assert.True(t, allowed, "Request %d should be allowed", i+1)
@@ -163,7 +186,7 @@ func TestRateLimitingIntegration(t *testing.T) {
 	// The 11th request should be denied
 	allowed, err := deliveryService.CheckRateLimit(ctx, channel, recipient)
 	assert.NoError(t, err)
-	assert.False(t, allowed, "Request 11 should be denied due to rate limit")
+	assert.False(t, allowed, "Request %d should be denied due to rate limit", EmailRateLimit+1)
 }
 
 // Integration test for queue processing with priority
@@ -180,21 +203,21 @@ func TestQueuePriorityProcessingIntegration(t *testing.T) {
 	lowPriority := domain.NewQueuedNotification(
 		value_objects.NewID(),
 		domain.NotificationChannelTelegram,
-		"low-priority-user",
-		"Low priority message",
-		"Test",
-		1, // Low priority
-		3,
+		LowPriorityUser,
+		LowPriorityMessage,
+		TestGenericSubject,
+		LowPriority,
+		MaxRetries,
 	)
 
 	highPriority := domain.NewQueuedNotification(
 		value_objects.NewID(),
 		domain.NotificationChannelTelegram,
-		"high-priority-user",
-		"High priority message",
-		"Test",
-		5, // High priority
-		3,
+		HighPriorityUser,
+		HighPriorityMessage,
+		TestGenericSubject,
+		HighPriority,
+		MaxRetries,
 	)
 
 	// Queue notifications (low priority first)
@@ -205,7 +228,7 @@ func TestQueuePriorityProcessingIntegration(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Act - Get pending notifications by priority
-	pendingNotifications, err := queueRepo.GetPendingByPriority(ctx, 10)
+	pendingNotifications, err := queueRepo.GetPendingByPriority(ctx, ProcessQueueLimit)
 	assert.NoError(t, err)
 
 	// Assert - High priority should come first
@@ -236,27 +259,27 @@ func TestDeliveryChannelManagementIntegration(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test direct sending through registered channels
-	telegramChannel.On("Send", mock.Anything, "test-user", "Test Subject", "Test Message").Return("tg-msg-123", nil)
-	emailChannel.On("Send", mock.Anything, "test@example.com", "Test Subject", "Test Message").Return("email-msg-123", nil)
+	telegramChannel.On("Send", mock.Anything, TestUser, TestSubject, TestMessage).Return(TestTelegramMsgID, nil)
+	emailChannel.On("Send", mock.Anything, TestEmail, TestSubject, TestMessage).Return(TestEmailMsgID, nil)
 
 	// Send through Telegram channel
-	messageID, err := deliveryService.SendNotification(ctx, domain.NotificationChannelTelegram, "test-user", "Test Subject", "Test Message")
+	messageID, err := deliveryService.SendNotification(ctx, domain.NotificationChannelTelegram, TestUser, TestSubject, TestMessage)
 	assert.NoError(t, err)
-	assert.Equal(t, "tg-msg-123", messageID)
+	assert.Equal(t, TestTelegramMsgID, messageID)
 
 	// Send through Email channel
-	messageID, err = deliveryService.SendNotification(ctx, domain.NotificationChannelEmail, "test@example.com", "Test Subject", "Test Message")
+	messageID, err = deliveryService.SendNotification(ctx, domain.NotificationChannelEmail, TestEmail, TestSubject, TestMessage)
 	assert.NoError(t, err)
-	assert.Equal(t, "email-msg-123", messageID)
+	assert.Equal(t, TestEmailMsgID, messageID)
 
 	// Test unregistering a channel
 	err = deliveryService.UnregisterDeliveryChannel(domain.NotificationChannelTelegram)
 	assert.NoError(t, err)
 
 	// Sending through unregistered channel should fail
-	_, err = deliveryService.SendNotification(ctx, domain.NotificationChannelTelegram, "test-user", "Test Subject", "Test Message")
+	_, err = deliveryService.SendNotification(ctx, domain.NotificationChannelTelegram, TestUser, TestSubject, TestMessage)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not registered")
+	assert.Contains(t, err.Error(), NotRegisteredError)
 
 	// Verify mock expectations
 	telegramChannel.AssertExpectations(t)

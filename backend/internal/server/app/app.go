@@ -1,6 +1,7 @@
 package app
 
 import (
+	d "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/dashboard"
 	h "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/health"
 	p "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/project"
 	t "github.com/dewisartika8/cicd-status-notifier-bot/internal/adapter/handler/telegram"
@@ -17,12 +18,13 @@ const (
 )
 
 type Dep struct {
-	AppConfig       *config.AppConfig
-	HealthHandler   *h.HealthHandler
-	ProjectHandler  *p.Handler
-	WebhookHandler  *w.WebhookHandler
-	TelegramHandler *t.TelegramHandler
-	Logger          *logrus.Logger
+	AppConfig        *config.AppConfig
+	HealthHandler    *h.HealthHandler
+	ProjectHandler   *p.Handler
+	WebhookHandler   *w.WebhookHandler
+	TelegramHandler  *t.TelegramHandler
+	DashboardHandler *d.Handler
+	Logger           *logrus.Logger
 }
 
 type service struct {
