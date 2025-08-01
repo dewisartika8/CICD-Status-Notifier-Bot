@@ -242,7 +242,7 @@ func (s *webhookService) processWorkflowRunEvent(ctx context.Context, webhookEve
 	}
 
 	// Create notification if build event was created successfully
-	if buildEvent != nil {
+	if buildEvent != nil && s.NotificationLogService != nil {
 		var statusText string
 		switch buildStatus {
 		case buildDomain.BuildStatusSuccess:
@@ -299,7 +299,7 @@ func (s *webhookService) processPushEvent(ctx context.Context, webhookEvent *dom
 	}
 
 	// Create notification if build event was created successfully
-	if buildEvent != nil {
+	if buildEvent != nil && s.NotificationLogService != nil {
 		message := s.buildNotificationMessage(payload, branch, commitInfo)
 		_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
 			ctx,
@@ -470,16 +470,49 @@ func (s *webhookService) processPullRequestEvent(ctx context.Context, webhookEve
 	pr := payload.PullRequest
 
 	// Determine status based on PR action
+	status := s.determinePRStatus(payload.Action, pr.State)
+
+	// Create build event request
+	buildEventReq := s.createPRBuildEventRequest(webhookEvent, payload, pr, status)
+
+	// Create build event
+	buildEvent, err := s.BuildService.CreateBuildEvent(ctx, buildEventReq)
+	if err != nil {
+		return fmt.Errorf(errFailedToCreateBuildEvent, err)
+	}
+
+	// Create notification if build event was created successfully
+	if buildEvent != nil && s.NotificationLogService != nil {
+		message := s.createPRNotificationMessage(payload, pr)
+		_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
+			ctx,
+			buildEvent.ID(),
+			webhookEvent.ProjectID(),
+			message,
+		)
+		if err != nil {
+			return fmt.Errorf(errFailedToCreateNotification, err)
+		}
+	}
+
+	return nil
+}
+
+// determinePRStatus determines the build status based on PR action and state
+func (s *webhookService) determinePRStatus(action, state string) buildDomain.BuildStatus {
 	status := buildDomain.BuildStatusPending
-	if payload.Action == "closed" {
-		if pr.State == "merged" {
+	if action == "closed" {
+		if state == "merged" {
 			status = buildDomain.BuildStatusSuccess
 		} else {
 			status = buildDomain.BuildStatusCancelled
 		}
 	}
+	return status
+}
 
-	// Use head branch and commit information
+// createPRBuildEventRequest creates build event request for pull request
+func (s *webhookService) createPRBuildEventRequest(webhookEvent *domain.WebhookEvent, payload dto.GitHubActionsPayload, pr *dto.PullRequest, status buildDomain.BuildStatus) buildDto.CreateBuildEventRequest {
 	branch := pr.Head.Ref
 	commitSHA := pr.Head.SHA
 	commitMessage := fmt.Sprintf("Pull Request: %s", pr.Title)
@@ -487,8 +520,7 @@ func (s *webhookService) processPullRequestEvent(ctx context.Context, webhookEve
 	authorEmail := pr.User.Email
 	buildURL := pr.HTMLURL
 
-	// Create build event request
-	buildEventReq := buildDto.CreateBuildEventRequest{
+	return buildDto.CreateBuildEventRequest{
 		ProjectID:     webhookEvent.ProjectID(),
 		EventType:     buildDomain.EventTypePullRequest,
 		Status:        status,
@@ -503,44 +535,28 @@ func (s *webhookService) processPullRequestEvent(ctx context.Context, webhookEve
 			return data
 		}(),
 	}
+}
 
-	// Create build event
-	buildEvent, err := s.BuildService.CreateBuildEvent(ctx, buildEventReq)
-	if err != nil {
-		return fmt.Errorf(errFailedToCreateBuildEvent, err)
-	}
+// createPRNotificationMessage creates notification message for pull request
+func (s *webhookService) createPRNotificationMessage(payload dto.GitHubActionsPayload, pr *dto.PullRequest) string {
+	actionText := s.getPRActionText(payload.Action, pr.State)
+	return fmt.Sprintf("📋 *Pull Request %s*\n*Project:* %s\n*Title:* %s\n*Branch:* %s → %s\n*Author:* %s",
+		actionText, s.safeRepositoryName(payload), pr.Title, pr.Head.Ref, pr.Base.Ref, pr.User.Name)
+}
 
-	// Create notification if build event was created successfully
-	if buildEvent != nil {
-		// Create notification message
-		actionText := "opened"
-		switch payload.Action {
-		case "closed":
-			if pr.State == "merged" {
-				actionText = "merged"
-			} else {
-				actionText = "closed"
-			}
-		case "reopened":
-			actionText = "reopened"
-		case "synchronize":
-			actionText = "updated"
+// getPRActionText returns the action text for pull request notifications
+func (s *webhookService) getPRActionText(action, state string) string {
+	switch action {
+	case "closed":
+		if state == "merged" {
+			return "merged"
 		}
-
-		message := fmt.Sprintf("📋 *Pull Request %s*\n*Project:* %s\n*Title:* %s\n*Branch:* %s → %s\n*Author:* %s",
-			actionText, s.safeRepositoryName(payload), pr.Title, pr.Head.Ref, pr.Base.Ref, authorName)
-
-		// Send notifications
-		_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
-			ctx,
-			buildEvent.ID(),
-			webhookEvent.ProjectID(),
-			message,
-		)
-		if err != nil {
-			return fmt.Errorf(errFailedToCreateNotification, err)
-		}
+		return "closed"
+	case "reopened":
+		return "reopened"
+	case "synchronize":
+		return "updated"
+	default:
+		return "opened"
 	}
-
-	return nil
 }
