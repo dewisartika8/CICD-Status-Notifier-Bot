@@ -396,6 +396,40 @@ func TestRestoreNotificationLog(t *testing.T) {
 	assert.Equal(t, 3, log.MaxRetries())
 }
 
+func TestRestoreNotificationLogWithNilMetrics(t *testing.T) {
+	id := value_objects.NewID()
+	buildEventID := value_objects.NewID()
+	projectID := value_objects.NewID()
+	now := value_objects.NewTimestamp()
+
+	// Test that RestoreNotificationLog handles nil metrics gracefully
+	params := domain.RestoreNotificationLogParams{
+		ID:           id,
+		BuildEventID: buildEventID,
+		ProjectID:    projectID,
+		Channel:      domain.NotificationChannelTelegram,
+		Recipient:    "123456789",
+		Message:      "Test message",
+		Status:       domain.NotificationStatusPending,
+		ErrorMessage: "",
+		RetryCount:   0,
+		MaxRetries:   3,
+		Metrics:      nil, // Explicitly nil to test the fix
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+
+	log := domain.RestoreNotificationLog(params)
+
+	assert.NotNil(t, log)
+	assert.NotNil(t, log.Metrics()) // Should not be nil after restoration
+
+	// Test that methods using metrics don't panic
+	assert.NoError(t, log.MarkAsSent(nil))
+	assert.NoError(t, log.MarkAsDelivered())
+	assert.NoError(t, log.MarkAsFailed("test error"))
+}
+
 func TestRestoreNotificationMetrics(t *testing.T) {
 	now := value_objects.NewTimestamp()
 

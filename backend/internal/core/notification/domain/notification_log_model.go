@@ -14,6 +14,7 @@ type NotificationLogModel struct {
 	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
 	BuildEventID uuid.UUID  `gorm:"type:uuid;not null;index:idx_notification_logs_build_event_id"`
 	ChatID       int64      `gorm:"type:bigint;not null;index:idx_notification_logs_chat_id"`
+	Message      string     `gorm:"type:text"`
 	MessageID    *int       `gorm:"type:integer"`
 	Status       string     `gorm:"type:varchar(20);not null;index:idx_notification_logs_status"`
 	ErrorMessage string     `gorm:"type:text"`
@@ -60,11 +61,12 @@ func (nlm *NotificationLogModel) ToEntity() *NotificationLog {
 		ProjectID:    projectID,
 		Channel:      NotificationChannel(nlm.Channel),
 		Recipient:    strconv.FormatInt(nlm.ChatID, 10), // Convert ChatID to string as recipient
-		Message:      "Notification",                    // Default message since not stored in DB
+		Message:      nlm.Message,                       // Use actual message from database
 		Status:       NotificationStatus(nlm.Status),
 		ErrorMessage: nlm.ErrorMessage,
 		RetryCount:   nlm.RetryCount,
 		MessageID:    convertIntToStringPointer(nlm.MessageID),
+		Metrics:      NewNotificationMetrics(), // Ensure metrics is always initialized
 		CreatedAt:    value_objects.NewTimestampFromTime(nlm.CreatedAt),
 		UpdatedAt:    value_objects.NewTimestampFromTime(nlm.CreatedAt), // Use CreatedAt since no UpdatedAt in DB
 	}
@@ -108,6 +110,7 @@ func (nlm *NotificationLogModel) FromEntity(entity *NotificationLog) {
 
 	nlm.Channel = string(entity.Channel())
 	nlm.Status = string(entity.Status())
+	nlm.Message = entity.Message()
 	nlm.ErrorMessage = entity.ErrorMessage()
 	nlm.RetryCount = entity.RetryCount()
 	nlm.MessageID = convertStringToIntPointer(entity.MessageID())

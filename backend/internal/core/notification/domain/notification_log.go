@@ -195,6 +195,12 @@ func NewNotificationLog(
 
 // RestoreNotificationLog restores a notification log from persistence
 func RestoreNotificationLog(params RestoreNotificationLogParams) *NotificationLog {
+	// Ensure metrics is never nil
+	metrics := params.Metrics
+	if metrics == nil {
+		metrics = NewNotificationMetrics()
+	}
+
 	return &NotificationLog{
 		id:           params.ID,
 		buildEventID: params.BuildEventID,
@@ -209,7 +215,7 @@ func RestoreNotificationLog(params RestoreNotificationLogParams) *NotificationLo
 		messageID:    params.MessageID,
 		templateID:   params.TemplateID,
 		metadata:     params.Metadata,
-		metrics:      params.Metrics,
+		metrics:      metrics,
 		nextRetryAt:  params.NextRetryAt,
 		expiresAt:    params.ExpiresAt,
 		sentAt:       params.SentAt,
@@ -312,6 +318,9 @@ func (nl *NotificationLog) Metadata() map[string]interface{} {
 
 // Metrics returns the notification metrics
 func (nl *NotificationLog) Metrics() *NotificationMetrics {
+	if nl.metrics == nil {
+		nl.metrics = NewNotificationMetrics()
+	}
 	return nl.metrics
 }
 
@@ -353,7 +362,10 @@ func (nl *NotificationLog) MarkAsSent(messageID *string) error {
 	nl.updatedAt = value_objects.NewTimestamp()
 	nl.errorMessage = "" // Clear any previous error
 
-	// Record metrics
+	// Record metrics - ensure metrics is not nil
+	if nl.metrics == nil {
+		nl.metrics = NewNotificationMetrics()
+	}
 	nl.metrics.RecordAttempt()
 
 	return nil
@@ -365,7 +377,10 @@ func (nl *NotificationLog) MarkAsDelivered() error {
 	nl.updatedAt = value_objects.NewTimestamp()
 	nl.errorMessage = "" // Clear any previous error
 
-	// Record delivery metrics
+	// Record delivery metrics - ensure metrics is not nil
+	if nl.metrics == nil {
+		nl.metrics = NewNotificationMetrics()
+	}
 	nl.metrics.RecordDelivery()
 
 	return nil
@@ -381,7 +396,10 @@ func (nl *NotificationLog) MarkAsFailed(errorMessage string) error {
 	nl.errorMessage = strings.TrimSpace(errorMessage)
 	nl.updatedAt = value_objects.NewTimestamp()
 
-	// Record failure metrics
+	// Record failure metrics - ensure metrics is not nil
+	if nl.metrics == nil {
+		nl.metrics = NewNotificationMetrics()
+	}
 	nl.metrics.RecordFailure()
 
 	return nil
@@ -397,7 +415,10 @@ func (nl *NotificationLog) MarkAsRetrying() error {
 	nl.retryCount++
 	nl.updatedAt = value_objects.NewTimestamp()
 
-	// Record retry metrics
+	// Record retry metrics - ensure metrics is not nil
+	if nl.metrics == nil {
+		nl.metrics = NewNotificationMetrics()
+	}
 	nl.metrics.RecordRetry()
 
 	return nil
