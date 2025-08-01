@@ -11,12 +11,12 @@ import (
 // TelegramSubscriptionModel represents the GORM model for telegram subscriptions
 type TelegramSubscriptionModel struct {
 	ID         uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
-	ProjectID  uuid.UUID `gorm:"type:uuid;not null;index:idx_telegram_subscriptions_project"`
-	ChatID     int64     `gorm:"type:bigint;not null;index:idx_telegram_subscriptions_chat"`
+	ProjectID  uuid.UUID `gorm:"type:uuid;not null;index:idx_telegram_subscriptions_project_id"`
+	ChatID     int64     `gorm:"type:bigint;not null;index:idx_telegram_subscriptions_chat_id"`
 	UserID     *int64    `gorm:"type:bigint"`
 	Username   string    `gorm:"type:varchar(255)"`
 	EventTypes []string  `gorm:"type:text[];column:event_types"`
-	IsActive   bool      `gorm:"type:boolean;not null;default:true;index:idx_telegram_subscriptions_active"`
+	IsActive   bool      `gorm:"type:boolean;not null;default:true;index:idx_telegram_subscriptions_is_active"`
 	CreatedAt  time.Time `gorm:"type:timestamp with time zone;not null;default:now()"`
 	UpdatedAt  time.Time `gorm:"type:timestamp with time zone;not null;default:now()"`
 }
