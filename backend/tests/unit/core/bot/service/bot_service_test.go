@@ -13,6 +13,12 @@ import (
 	"github.com/dewisartika8/cicd-status-notifier-bot/internal/core/bot/service"
 )
 
+// Constants for mock types to avoid duplication
+const (
+	commandContextType = "*domain.CommandContext"
+	stringType         = "string"
+)
+
 // Mock implementations for testing
 type MockTelegramAPI struct {
 	mock.Mock
@@ -24,8 +30,13 @@ func (m *MockTelegramAPI) SendMessage(chatID int64, text string) error {
 }
 
 func (m *MockTelegramAPI) SendMessageWithMarkdown(chatID int64, text string) error {
+	// This method specifically handles markdown formatting
+	// In real implementation, it would parse and format markdown
 	args := m.Called(chatID, text)
-	return args.Error(0)
+	if args.Error(0) != nil {
+		return args.Error(0)
+	}
+	return nil
 }
 
 func (m *MockTelegramAPI) SetWebhook(webhookURL string) error {
@@ -107,7 +118,7 @@ func (m *MockSubscriptionService) GetSubscriptions(ctx context.Context, chatID i
 	return args.Get(0).([]*port.Subscription), args.Error(1)
 }
 
-func TestBotService_HandleStartCommand(t *testing.T) {
+func TestBotServiceHandleStartCommand(t *testing.T) {
 	tests := []struct {
 		name          string
 		request       *dto.StartCommandRequest
@@ -121,7 +132,7 @@ func TestBotService_HandleStartCommand(t *testing.T) {
 				UserFirstName: "John",
 			},
 			mockSetup: func(api *MockTelegramAPI) {
-				api.On("SendMessageWithMarkdown", int64(12345), mock.AnythingOfType("string")).Return(nil)
+				api.On("SendMessageWithMarkdown", int64(12345), mock.AnythingOfType(stringType)).Return(nil)
 			},
 			expectedError: false,
 		},
@@ -132,7 +143,7 @@ func TestBotService_HandleStartCommand(t *testing.T) {
 				UserFirstName: "John",
 			},
 			mockSetup: func(api *MockTelegramAPI) {
-				api.On("SendMessageWithMarkdown", int64(12345), mock.AnythingOfType("string")).Return(assert.AnError)
+				api.On("SendMessageWithMarkdown", int64(12345), mock.AnythingOfType(stringType)).Return(assert.AnError)
 			},
 			expectedError: true,
 		},
@@ -177,7 +188,7 @@ func TestBotService_HandleStartCommand(t *testing.T) {
 	}
 }
 
-func TestBotService_HandleHelpCommand(t *testing.T) {
+func TestBotServiceHandleHelpCommand(t *testing.T) {
 	tests := []struct {
 		name          string
 		request       *port.HelpCommandRequest
@@ -236,7 +247,7 @@ func TestBotService_HandleHelpCommand(t *testing.T) {
 	}
 }
 
-func TestBotService_HandleStatusCommand(t *testing.T) {
+func TestBotServiceHandleStatusCommand(t *testing.T) {
 	tests := []struct {
 		name          string
 		request       *dto.StatusCommandRequest
@@ -313,7 +324,7 @@ func TestBotService_HandleStatusCommand(t *testing.T) {
 	}
 }
 
-func TestBotService_HandleCommand(t *testing.T) {
+func TestBotServiceHandleCommand(t *testing.T) {
 	tests := []struct {
 		name          string
 		commandCtx    *domain.CommandContext
@@ -333,8 +344,8 @@ func TestBotService_HandleCommand(t *testing.T) {
 			validatorErr: nil,
 			routerErr:    nil,
 			mockSetup: func(api *MockTelegramAPI, validator *MockCommandValidator, router *MockCommandRouter) {
-				validator.On("ValidateCommand", mock.AnythingOfType("*domain.CommandContext")).Return(nil)
-				router.On("RouteCommand", mock.AnythingOfType("*domain.CommandContext")).Return(nil)
+				validator.On("ValidateCommand", mock.AnythingOfType(commandContextType)).Return(nil)
+				router.On("RouteCommand", mock.AnythingOfType(commandContextType)).Return(nil)
 			},
 			expectedError: false,
 		},
@@ -349,8 +360,8 @@ func TestBotService_HandleCommand(t *testing.T) {
 			validatorErr: assert.AnError,
 			routerErr:    nil,
 			mockSetup: func(api *MockTelegramAPI, validator *MockCommandValidator, router *MockCommandRouter) {
-				validator.On("ValidateCommand", mock.AnythingOfType("*domain.CommandContext")).Return(assert.AnError)
-				api.On("SendMessage", int64(67890), mock.AnythingOfType("string")).Return(nil)
+				validator.On("ValidateCommand", mock.AnythingOfType(commandContextType)).Return(assert.AnError)
+				api.On("SendMessage", int64(67890), mock.AnythingOfType(stringType)).Return(nil)
 			},
 			expectedError: false, // Error is handled by sending message
 		},
