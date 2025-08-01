@@ -1,0 +1,670 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, staging ]
+  pull_request:
+    branches: [ main, develop, staging ]
+
+env:
+  GO_VERSION: '1.23'
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  TARGET_HOST: 127.0.0.1
+
+jobs:
+  # Backend Tests and Analysis
+  backend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: jQlwjVKoQw
+          POSTGRES_USER: postgres
+          POSTGRES_DB: cicd_notifier_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Verify dependencies
+      run: go mod verify
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Install staticcheck
+      run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+    - name: Run staticcheck
+      run: staticcheck ./...
+
+    - name: Install gosec
+      run: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+
+    - name: Run gosec
+      run: gosec ./...
+
+    - name: Run database migrations
+      run: |
+        go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+        migrate -path scripts/migrations -database "postgres://postgres:jQlwjVKoQw@localhost:5432/cicd_notifier_test?sslmode=disable" up
+      env:
+        DATABASE_URL: postgres://postgres:jQlwjVKoQw@localhost:5432/cicd_notifier_test?sslmode=disable
+
+    - name: Run unit tests
+      run: |
+        go test -v -race -covermode=atomic -coverprofile=coverage.out ./...
+      env:
+        DATABASE_URL: postgres://postgres:jQlwjVKoQw@localhost:5432/cicd_notifier_test?sslmode=disable
+
+    - name: Run integration tests
+      run: |
+        cd tests && make test-integration
+      env:
+        DATABASE_URL: postgres://postgres:jQlwjVKoQw@localhost:5432/cicd_notifier_test?sslmode=disable
+
+    - name: Generate test report
+      run: |
+        go install github.com/boumenot/gocover-cobertura@latest
+        gocover-cobertura < coverage.out > coverage.xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+
+    - name: SonarQube Scan
+      uses: sonarqube-quality-gate-action@master
+      with:
+        scanMetadataReportFile: ./backend/coverage.xml
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  # Frontend Tests and Analysis  
+  frontend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run ESLint
+      run: npm run lint --if-present
+
+    - name: Run Prettier check
+      run: npm run format:check --if-present
+
+    - name: Run unit tests
+      run: npm test -- --coverage --watchAll=false
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./frontend/coverage/lcov.info
+        flags: frontend
+        name: frontend-coverage
+
+    - name: Build frontend
+      run: npm run build
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend-build
+        path: frontend/dist/
+
+  # Security Scanning
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run Snyk to check for vulnerabilities
+      uses: snyk/actions/node@master
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+
+  # Build Docker Images
+  build:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test, security-scan]
+    outputs:
+      backend-image: ${{ steps.meta-backend.outputs.tags }}
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
+      
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for backend
+      id: meta-backend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile
+        push: true
+        tags: ${{ steps.meta-backend.outputs.tags }}
+        labels: ${{ steps.meta-backend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Extract metadata for frontend
+      id: meta-frontend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Download frontend build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: frontend-build
+        path: frontend/dist/
+
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: true
+        tags: ${{ steps.meta-frontend.outputs.tags }}
+        labels: ${{ steps.meta-frontend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # Deploy to Staging Environment
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/staging'
+    environment: staging
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Deploy to staging server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ env.TARGET_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT || 22 }}
+        script: |
+          # Create staging directory
+          sudo mkdir -p /opt/cicd-notifier-staging
+          cd /opt/cicd-notifier-staging
+          
+          # Stop existing staging containers
+          sudo docker-compose -f docker-compose.staging.yml down || true
+          
+          # Pull latest images
+          echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+          sudo docker pull ${{ needs.build.outputs.backend-image }}
+          sudo docker pull ${{ needs.build.outputs.frontend-image }}
+          
+          # Create staging environment file
+          sudo tee .env.staging << EOF
+          POSTGRES_DB=cicd_notifier_staging
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_STAGING }}
+          BACKEND_IMAGE=${{ needs.build.outputs.backend-image }}
+          FRONTEND_IMAGE=${{ needs.build.outputs.frontend-image }}
+          JWT_SECRET=${{ secrets.JWT_SECRET_STAGING }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          EOF
+          
+          # Create staging docker-compose file
+          sudo tee docker-compose.staging.yml << 'EOYML'
+          version: '3.8'
+          services:
+            postgres-staging:
+              image: postgres:15-alpine
+              container_name: cicd_postgres_staging
+              environment:
+                POSTGRES_DB: ${POSTGRES_DB}
+                POSTGRES_USER: ${POSTGRES_USER}
+                POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+              ports:
+                - "5434:5432"
+              volumes:
+                - postgres_staging_data:/var/lib/postgresql/data
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U postgres"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+              restart: unless-stopped
+          
+            backend-staging:
+              image: ${BACKEND_IMAGE}
+              container_name: cicd_backend_staging
+              depends_on:
+                postgres-staging:
+                  condition: service_healthy
+              ports:
+                - "8082:8080"
+              environment:
+                DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-staging:5432/${POSTGRES_DB}?sslmode=disable
+                PORT: 8080
+                ENV: staging
+                JWT_SECRET: ${JWT_SECRET}
+                TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+              restart: unless-stopped
+              healthcheck:
+                test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+          
+            frontend-staging:
+              image: ${FRONTEND_IMAGE}
+              container_name: cicd_frontend_staging
+              depends_on:
+                backend-staging:
+                  condition: service_healthy
+              ports:
+                - "3002:80"
+              environment:
+                REACT_APP_API_URL: http://${{ env.TARGET_HOST }}:8082
+              restart: unless-stopped
+          
+          volumes:
+            postgres_staging_data:
+          EOYML
+          
+          # Start staging services
+          sudo docker-compose -f docker-compose.staging.yml --env-file .env.staging up -d
+          
+          # Wait for services to be ready
+          sleep 60
+          
+          # Run health checks on the remote server
+          curl -f http://localhost:8082/health || exit 1
+          curl -f http://localhost:3002 || exit 1
+          
+          # Run database migrations
+          sudo docker exec cicd_backend_staging /app/migrate up || true
+          
+          echo "Staging deployment completed successfully!"
+
+  # Deploy to Test Environment
+  deploy-test:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop' || github.event_name == 'pull_request'
+    environment: test
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Deploy to test server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ env.TARGET_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT || 22 }}
+        script: |
+          # Create application directory
+          sudo mkdir -p /opt/cicd-notifier-test
+          cd /opt/cicd-notifier-test
+          
+          # Stop existing containers
+          sudo docker-compose -f docker-compose.test.yml down || true
+          
+          # Pull latest images
+          echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+          sudo docker pull ${{ needs.build.outputs.backend-image }}
+          sudo docker pull ${{ needs.build.outputs.frontend-image }}
+          
+          # Create test environment file
+          sudo tee .env.test << EOF
+          POSTGRES_DB=cicd_notifier_test
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=jQlwjVKoQw
+          BACKEND_IMAGE=${{ needs.build.outputs.backend-image }}
+          FRONTEND_IMAGE=${{ needs.build.outputs.frontend-image }}
+          EOF
+          
+          # Create test docker-compose file
+          sudo tee docker-compose.test.yml << 'EOYML'
+          version: '3.8'
+          services:
+            postgres-test:
+              image: postgres:15-alpine
+              container_name: cicd_postgres_test
+              environment:
+                POSTGRES_DB: ${POSTGRES_DB}
+                POSTGRES_USER: ${POSTGRES_USER}
+                POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+              ports:
+                - "5433:5432"
+              volumes:
+                - postgres_test_data:/var/lib/postgresql/data
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U postgres"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+          
+            backend-test:
+              image: ${BACKEND_IMAGE}
+              container_name: cicd_backend_test
+              depends_on:
+                postgres-test:
+                  condition: service_healthy
+              ports:
+                - "8081:8080"
+              environment:
+                DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-test:5432/${POSTGRES_DB}?sslmode=disable
+                PORT: 8080
+                ENV: test
+          
+            frontend-test:
+              image: ${FRONTEND_IMAGE}
+              container_name: cicd_frontend_test
+              depends_on:
+                - backend-test
+              ports:
+                - "3001:80"
+              environment:
+                REACT_APP_API_URL: http://${{ env.TARGET_HOST }}:8081
+          
+          volumes:
+            postgres_test_data:
+          EOYML
+          
+          # Start services
+          sudo docker-compose -f docker-compose.test.yml --env-file .env.test up -d
+          
+          # Wait for services to be ready
+          sleep 30
+          
+          # Run health checks on the remote server
+          curl -f http://localhost:8081/health || exit 1
+          curl -f http://localhost:3001 || exit 1
+          
+          echo "Test deployment completed successfully!"
+
+  # Deploy to Production
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Deploy to production server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ env.TARGET_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT || 22 }}
+        script: |
+          # Create application directory
+          sudo mkdir -p /opt/cicd-notifier
+          cd /opt/cicd-notifier
+          
+          # Backup current deployment
+          sudo docker-compose down || true
+          sudo docker-compose -f docker-compose.backup.yml up -d postgres || true
+          
+          # Pull latest images
+          echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+          sudo docker pull ${{ needs.build.outputs.backend-image }}
+          sudo docker pull ${{ needs.build.outputs.frontend-image }}
+          
+          # Create production environment file
+          sudo tee .env.prod << EOF
+          POSTGRES_DB=cicd_notifier
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          BACKEND_IMAGE=${{ needs.build.outputs.backend-image }}
+          FRONTEND_IMAGE=${{ needs.build.outputs.frontend-image }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          EOF
+          
+          # Create production docker-compose file
+          sudo tee docker-compose.yml << 'EOYML'
+          version: '3.8'
+          services:
+            postgres:
+              image: postgres:15-alpine
+              container_name: cicd_postgres
+              environment:
+                POSTGRES_DB: ${POSTGRES_DB}
+                POSTGRES_USER: ${POSTGRES_USER}
+                POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+              ports:
+                - "5432:5432"
+              volumes:
+                - postgres_data:/var/lib/postgresql/data
+                - ./backups:/backups
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U postgres"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+              restart: unless-stopped
+          
+            backend:
+              image: ${BACKEND_IMAGE}
+              container_name: cicd_backend
+              depends_on:
+                postgres:
+                  condition: service_healthy
+              ports:
+                - "8080:8080"
+              environment:
+                DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+                PORT: 8080
+                ENV: production
+                JWT_SECRET: ${JWT_SECRET}
+                TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+              restart: unless-stopped
+              healthcheck:
+                test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+          
+            frontend:
+              image: ${FRONTEND_IMAGE}
+              container_name: cicd_frontend
+              depends_on:
+                backend:
+                  condition: service_healthy
+              ports:
+                - "80:80"
+                - "443:443"
+              environment:
+                REACT_APP_API_URL: http://${{ env.TARGET_HOST }}:8080
+              restart: unless-stopped
+              volumes:
+                - ./ssl:/etc/nginx/ssl:ro
+          
+          volumes:
+            postgres_data:
+          EOYML
+          
+          # Start services with zero-downtime deployment
+          sudo docker-compose --env-file .env.prod up -d
+          
+          # Wait for services to be ready
+          sleep 60
+          
+          # Run health checks on the remote server
+          curl -f http://localhost:8080/health || exit 1
+          curl -f http://localhost || exit 1
+          
+          # Run database migrations
+          sudo docker exec cicd_backend /app/migrate up || true
+          
+          # Clean up old images
+          sudo docker image prune -f
+          
+          echo "Production deployment completed successfully!"
+
+  # Smoke Tests
+  smoke-tests:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-test, deploy-production]
+    if: always()
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Run smoke tests for staging
+      if: github.ref == 'refs/heads/staging'
+      run: |
+        # Test staging API endpoints on remote server
+        curl -f http://${{ env.TARGET_HOST }}:8082/health || exit 1
+        curl -f http://${{ env.TARGET_HOST }}:8082/api/v1/projects || exit 1
+        
+        # Test staging frontend
+        curl -f http://${{ env.TARGET_HOST }}:3002 || exit 1
+        
+        echo "Staging smoke tests passed!"
+
+    - name: Run smoke tests for test
+      if: github.ref == 'refs/heads/develop' || github.event_name == 'pull_request'
+      run: |
+        # Test API endpoints on remote server
+        curl -f http://${{ env.TARGET_HOST }}:8081/health || exit 1
+        curl -f http://${{ env.TARGET_HOST }}:8081/api/v1/projects || exit 1
+        
+        # Test frontend
+        curl -f http://${{ env.TARGET_HOST }}:3001 || exit 1
+        
+        echo "Test environment smoke tests passed!"
+
+    - name: Run smoke tests for production
+      if: github.ref == 'refs/heads/main'
+      run: |
+        # Test API endpoints on remote server
+        curl -f http://${{ env.TARGET_HOST }}:8080/health || exit 1
+        curl -f http://${{ env.TARGET_HOST }}:8080/api/v1/projects || exit 1
+        
+        # Test frontend
+        curl -f http://${{ env.TARGET_HOST }} || exit 1
+        
+        echo "Production smoke tests passed!"
+
+  # Notify on completion
+  notify:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-test, deploy-production, smoke-tests]
+    if: always()
+    
+    steps:
+    - name: Notify deployment status
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        text: |
+          Deployment Status: ${{ job.status }}
+          Branch: ${{ github.ref }}
+          Commit: ${{ github.sha }}
+          Target: ${{ env.TARGET_HOST }}
+          Environment: ${{ github.ref == 'refs/heads/main' && 'Production' || github.ref == 'refs/heads/staging' && 'Staging' || github.ref == 'refs/heads/develop' && 'Test' || 'Unknown' }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      if: always()

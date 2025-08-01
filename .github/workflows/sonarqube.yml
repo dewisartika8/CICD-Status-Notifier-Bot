@@ -1,0 +1,99 @@
+name: SonarQube Analysis
+
+on:
+  push:
+    branches: [ main, develop, staging ]
+  pull_request:
+    branches: [ main, staging ]
+
+env:
+  GO_VERSION: '1.23'
+  NODE_VERSION: '18'
+
+jobs:
+  sonarqube:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: jQlwjVKoQw
+          POSTGRES_USER: postgres
+          POSTGRES_DB: cicd_notifier_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # Backend Analysis
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+    - name: Download Go dependencies
+      working-directory: ./backend
+      run: go mod download
+
+    - name: Run backend tests with coverage
+      working-directory: ./backend
+      run: |
+        go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+        migrate -path scripts/migrations -database "postgres://postgres:jQlwjVKoQw@localhost:5432/cicd_notifier_test?sslmode=disable" up
+        go test -v -coverprofile=coverage.out -covermode=atomic ./...
+      env:
+        DATABASE_URL: postgres://postgres:jQlwjVKoQw@localhost:5432/cicd_notifier_test?sslmode=disable
+
+    # Frontend Analysis
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
+
+    - name: Install frontend dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Run frontend tests with coverage
+      working-directory: ./frontend
+      run: npm test -- --coverage --watchAll=false
+
+    - name: SonarQube Scan
+      uses: sonarqube-quality-gate-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+    - name: Upload results to SonarQube
+      run: |
+        npx sonar-scanner \
+          -Dsonar.projectKey=cicd-status-notifier-bot \
+          -Dsonar.organization=${{ github.repository_owner }} \
+          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+          -Dsonar.sources=backend,frontend/src \
+          -Dsonar.tests=backend/tests,frontend/src \
+          -Dsonar.go.coverage.reportPaths=backend/coverage.out \
+          -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info \
+          -Dsonar.exclusions='**/*_test.go,**/*.test.tsx,**/*.test.ts,**/node_modules/**' \
+          -Dsonar.test.inclusions='**/*_test.go,**/*.test.tsx,**/*.test.ts'

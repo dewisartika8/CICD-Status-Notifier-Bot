@@ -1,0 +1,401 @@
+name: Remote Deployment Test
+
+on:
+  push:
+    branches: [ staging ]
+  pull_request:
+    branches: [ staging ]
+  workflow_dispatch:
+
+env:
+  TARGET_HOST: 172.16.19.11
+  GO_VERSION: '1.23'
+  NODE_VERSION: '18'
+
+jobs:
+  # Pre-deployment validation
+  pre-deployment-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Validate server connectivity
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ env.TARGET_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT || 22 }}
+        script: |
+          echo "✅ SSH connection successful"
+          echo "Server info:"
+          uname -a
+          echo ""
+          echo "Docker info:"
+          docker --version
+          docker-compose --version
+          echo ""
+          echo "Available disk space:"
+          df -h /
+          echo ""
+          echo "Memory usage:"
+          free -h
+          echo ""
+          echo "Current running containers:"
+          docker ps
+
+    - name: Check required secrets
+      run: |
+        if [ -z "${{ secrets.SSH_USERNAME }}" ]; then
+          echo "❌ SSH_USERNAME secret not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
+          echo "❌ SSH_PRIVATE_KEY secret not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.POSTGRES_PASSWORD_STAGING }}" ]; then
+          echo "❌ POSTGRES_PASSWORD_STAGING secret not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.JWT_SECRET_STAGING }}" ]; then
+          echo "❌ JWT_SECRET_STAGING secret not set"
+          exit 1
+        fi
+        echo "✅ All required secrets are configured"
+
+  # Test deployment process
+  test-deployment:
+    runs-on: ubuntu-latest
+    needs: pre-deployment-check
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    # Build test images
+    - name: Build backend test image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile
+        push: true
+        tags: ghcr.io/${{ github.repository }}-backend:staging-test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build frontend test image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: true
+        tags: ghcr.io/${{ github.repository }}-frontend:staging-test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    # Deploy to remote server
+    - name: Deploy to staging environment
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ env.TARGET_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT || 22 }}
+        script: |
+          echo "🚀 Starting staging deployment..."
+          
+          # Create staging directory
+          sudo mkdir -p /opt/cicd-notifier-staging
+          cd /opt/cicd-notifier-staging
+          
+          # Stop existing staging containers
+          echo "🛑 Stopping existing containers..."
+          sudo docker-compose -f docker-compose.staging.yml down || true
+          
+          # Clean up old containers
+          sudo docker container prune -f
+          
+          # Pull latest images
+          echo "📥 Pulling latest images..."
+          echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          sudo docker pull ghcr.io/${{ github.repository }}-backend:staging-test
+          sudo docker pull ghcr.io/${{ github.repository }}-frontend:staging-test
+          
+          # Create staging environment file
+          echo "⚙️ Creating environment configuration..."
+          sudo tee .env.staging << EOF
+          POSTGRES_DB=cicd_notifier_staging
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_STAGING }}
+          BACKEND_IMAGE=ghcr.io/${{ github.repository }}-backend:staging-test
+          FRONTEND_IMAGE=ghcr.io/${{ github.repository }}-frontend:staging-test
+          JWT_SECRET=${{ secrets.JWT_SECRET_STAGING }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          EOF
+          
+          # Create staging docker-compose file
+          echo "📝 Creating docker-compose configuration..."
+          sudo tee docker-compose.staging.yml << 'EOYML'
+          version: '3.8'
+          services:
+            postgres-staging:
+              image: postgres:15-alpine
+              container_name: cicd_postgres_staging
+              environment:
+                POSTGRES_DB: ${POSTGRES_DB}
+                POSTGRES_USER: ${POSTGRES_USER}
+                POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+              ports:
+                - "5434:5432"
+              volumes:
+                - postgres_staging_data:/var/lib/postgresql/data
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U postgres"]
+                interval: 10s
+                timeout: 5s
+                retries: 10
+              restart: unless-stopped
+          
+            backend-staging:
+              image: ${BACKEND_IMAGE}
+              container_name: cicd_backend_staging
+              depends_on:
+                postgres-staging:
+                  condition: service_healthy
+              ports:
+                - "8082:8080"
+              environment:
+                DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-staging:5432/${POSTGRES_DB}?sslmode=disable
+                PORT: 8080
+                ENV: staging
+                JWT_SECRET: ${JWT_SECRET}
+                TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+              restart: unless-stopped
+              healthcheck:
+                test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+                start_period: 60s
+          
+            frontend-staging:
+              image: ${FRONTEND_IMAGE}
+              container_name: cicd_frontend_staging
+              depends_on:
+                backend-staging:
+                  condition: service_healthy
+              ports:
+                - "3002:80"
+              environment:
+                REACT_APP_API_URL: http://${{ env.TARGET_HOST }}:8082
+              restart: unless-stopped
+          
+          volumes:
+            postgres_staging_data:
+          EOYML
+          
+          # Start staging services
+          echo "🔄 Starting staging services..."
+          sudo docker-compose -f docker-compose.staging.yml --env-file .env.staging up -d
+          
+          # Wait for services to be ready
+          echo "⏳ Waiting for services to start..."
+          sleep 60
+          
+          # Check container status
+          echo "📊 Container status:"
+          sudo docker-compose -f docker-compose.staging.yml ps
+          
+          # Show logs if there are issues
+          echo "📋 Backend logs:"
+          sudo docker logs cicd_backend_staging --tail=20
+          echo ""
+          echo "📋 Frontend logs:"
+          sudo docker logs cicd_frontend_staging --tail=20
+          
+          echo "✅ Staging deployment completed!"
+
+  # Post-deployment tests
+  post-deployment-test:
+    runs-on: ubuntu-latest
+    needs: test-deployment
+    
+    steps:
+    - name: Wait for services to stabilize
+      run: sleep 30
+
+    - name: Run comprehensive health checks
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ env.TARGET_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT || 22 }}
+        script: |
+          echo "🔍 Running health checks..."
+          
+          # Check if containers are running
+          echo "📊 Container status:"
+          docker ps | grep staging
+          
+          # Test database connectivity
+          echo "🗄️ Testing database connectivity..."
+          if docker exec cicd_postgres_staging pg_isready -U postgres; then
+            echo "✅ Database is ready"
+          else
+            echo "❌ Database is not ready"
+            exit 1
+          fi
+          
+          # Test backend health endpoint
+          echo "🔧 Testing backend health..."
+          max_attempts=10
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            if curl -f http://localhost:8082/health; then
+              echo "✅ Backend health check passed"
+              break
+            else
+              echo "⏳ Attempt $attempt/$max_attempts: Backend not ready yet, waiting..."
+              sleep 10
+              attempt=$((attempt + 1))
+            fi
+          done
+          
+          if [ $attempt -gt $max_attempts ]; then
+            echo "❌ Backend health check failed after $max_attempts attempts"
+            echo "Backend logs:"
+            docker logs cicd_backend_staging --tail=50
+            exit 1
+          fi
+          
+          # Test frontend availability
+          echo "🌐 Testing frontend availability..."
+          if curl -f http://localhost:3002; then
+            echo "✅ Frontend is accessible"
+          else
+            echo "❌ Frontend is not accessible"
+            echo "Frontend logs:"
+            docker logs cicd_frontend_staging --tail=50
+            exit 1
+          fi
+
+    - name: Run external accessibility tests
+      run: |
+        echo "🌍 Testing external accessibility..."
+        
+        # Test backend from outside
+        echo "Testing backend API..."
+        curl -f http://${{ env.TARGET_HOST }}:8082/health || (echo "❌ Backend not accessible externally" && exit 1)
+        echo "✅ Backend is accessible externally"
+        
+        # Test frontend from outside
+        echo "Testing frontend..."
+        curl -f http://${{ env.TARGET_HOST }}:3002 || (echo "❌ Frontend not accessible externally" && exit 1)
+        echo "✅ Frontend is accessible externally"
+        
+        # Test API endpoints if available
+        echo "Testing API endpoints..."
+        curl -f http://${{ env.TARGET_HOST }}:8082/api/v1/projects || echo "⚠️ Projects endpoint not available (might be normal)"
+        
+        echo "🎉 All external accessibility tests passed!"
+
+    - name: Performance baseline test
+      run: |
+        echo "⚡ Running performance baseline tests..."
+        
+        # Test response times
+        backend_time=$(curl -o /dev/null -s -w '%{time_total}\n' http://${{ env.TARGET_HOST }}:8082/health)
+        echo "Backend response time: ${backend_time}s"
+        
+        frontend_time=$(curl -o /dev/null -s -w '%{time_total}\n' http://${{ env.TARGET_HOST }}:3002)
+        echo "Frontend response time: ${frontend_time}s"
+        
+        # Warn if response times are too slow
+        if (( $(echo "$backend_time > 2.0" | bc -l) )); then
+          echo "⚠️ Backend response time is slow: ${backend_time}s"
+        fi
+        
+        if (( $(echo "$frontend_time > 3.0" | bc -l) )); then
+          echo "⚠️ Frontend response time is slow: ${frontend_time}s"
+        fi
+        
+        echo "✅ Performance baseline test completed"
+
+  # Cleanup and notification
+  notify-results:
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-check, test-deployment, post-deployment-test]
+    if: always()
+    
+    steps:
+    - name: Notify test results
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#staging'
+        text: |
+          🚀 Staging Deployment Test Results
+          
+          Branch: ${{ github.ref }}
+          Commit: ${{ github.sha }}
+          Actor: ${{ github.actor }}
+          
+          Results:
+          - Pre-deployment Check: ${{ needs.pre-deployment-check.result }}
+          - Test Deployment: ${{ needs.test-deployment.result }}
+          - Post-deployment Test: ${{ needs.post-deployment-test.result }}
+          
+          Staging Environment:
+          - Frontend: http://${{ env.TARGET_HOST }}:3002
+          - Backend: http://${{ env.TARGET_HOST }}:8082
+          - Database: ${{ env.TARGET_HOST }}:5434
+          
+          ${{ job.status == 'success' && '✅ All tests passed! Ready for production.' || '❌ Some tests failed. Please check the logs.' }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      if: always()
+
+    - name: Comment on PR (if applicable)
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const status = '${{ job.status }}';
+          const body = `## 🚀 Staging Deployment Test Results
+          
+          **Status:** ${status === 'success' ? '✅ PASSED' : '❌ FAILED'}
+          
+          **Environment Access:**
+          - Frontend: http://${{ env.TARGET_HOST }}:3002
+          - Backend API: http://${{ env.TARGET_HOST }}:8082
+          - Health Check: http://${{ env.TARGET_HOST }}:8082/health
+          
+          **Test Results:**
+          - Pre-deployment Check: ${{ needs.pre-deployment-check.result }}
+          - Test Deployment: ${{ needs.test-deployment.result }}
+          - Post-deployment Test: ${{ needs.post-deployment-test.result }}
+          
+          ${status === 'success' ? 
+            '🎉 All tests passed! The staging environment is ready for testing.' : 
+            '⚠️ Some tests failed. Please check the workflow logs for details.'}
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
