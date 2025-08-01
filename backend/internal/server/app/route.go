@@ -6,10 +6,11 @@ import (
 
 func (s *service) createRoutes() {
 	router.NewRoutes(router.Dep{
-		App:             s.HTTPServer,
-		HealthHandler:   s.HealthHandler,
-		ProjectHandler:  s.ProjectHandler,
-		WebhookHandler:  s.WebhookHandler,
-		TelegramHandler: s.TelegramHandler,
+		App:              s.HTTPServer,
+		HealthHandler:    s.HealthHandler,
+		ProjectHandler:   s.ProjectHandler,
+		WebhookHandler:   s.WebhookHandler,
+		TelegramHandler:  s.TelegramHandler,
+		DashboardHandler: s.DashboardHandler,
 	}).RegisterRoutes()
 }
