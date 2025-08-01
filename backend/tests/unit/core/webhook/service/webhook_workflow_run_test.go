@@ -416,6 +416,12 @@ func TestWorkflowRunProcessingTDD(t *testing.T) {
 			mock.AnythingOfType("string")).
 			Return([]*notificationDomain.NotificationLog{expectedNotification}, nil).Once()
 
+		// Setup mock expectations for sending notification immediately
+		mockNotificationService.On("SendNotification",
+			mock.Anything,
+			expectedNotification.ID()).
+			Return(nil).Once()
+
 		// Create ProcessWebhookRequest
 		processReq := dto.ProcessWebhookRequest{
 			ProjectID:  projectID,

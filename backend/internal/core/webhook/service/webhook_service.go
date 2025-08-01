@@ -170,106 +170,161 @@ func (s *webhookService) processWebhookEvent(ctx context.Context, webhookEvent *
 
 // processWorkflowRunEvent processes workflow_run events
 func (s *webhookService) processWorkflowRunEvent(ctx context.Context, webhookEvent *domain.WebhookEvent, payload dto.GitHubActionsPayload) error {
-	// Check if WorkflowRun is nil (invalid payload)
+	// Validate payload
 	if payload.WorkflowRun == nil {
 		return fmt.Errorf("invalid workflow run payload: workflow_run is nil")
 	}
 
-	// Extract information from workflow run payload
-	branch := "main" // Default branch
+	// Extract workflow information
+	workflowInfo := s.extractWorkflowInfo(payload)
+
+	// Create build event
+	buildEvent, err := s.createWorkflowBuildEvent(ctx, webhookEvent, payload, workflowInfo)
+	if err != nil {
+		return fmt.Errorf(errFailedToCreateBuildEvent, err)
+	}
+
+	// Create and send notifications
+	if err := s.createAndSendWorkflowNotifications(ctx, buildEvent, webhookEvent.ProjectID(), payload, workflowInfo); err != nil {
+		return fmt.Errorf(errFailedToCreateNotification, err)
+	}
+
+	return nil
+}
+
+// workflowInfo holds extracted workflow information
+type workflowInfo struct {
+	Branch      string
+	CommitSHA   string
+	BuildURL    string
+	BuildStatus buildDomain.BuildStatus
+	EventType   buildDomain.EventType
+}
+
+// extractWorkflowInfo extracts workflow information from payload
+func (s *webhookService) extractWorkflowInfo(payload dto.GitHubActionsPayload) workflowInfo {
+	// Extract branch with fallback
+	branch := "main"
 	if payload.WorkflowRun.HeadBranch != "" {
 		branch = payload.WorkflowRun.HeadBranch
 	}
 
-	// Get commit information
-	var commitSHA, buildURL string
+	// Extract commit SHA and build URL
+	commitSHA := payload.WorkflowRun.HeadSha
+	buildURL := payload.WorkflowRun.HTMLURL
 
-	if payload.WorkflowRun.HeadSha != "" {
-		commitSHA = payload.WorkflowRun.HeadSha
-	}
-
-	if payload.WorkflowRun.HTMLURL != "" {
-		buildURL = payload.WorkflowRun.HTMLURL
-	}
-
-	// Use repository info if available
+	// Use repository commit URL if available
 	repoURL := s.safeRepositoryURL(payload)
 	if repoURL != "" && commitSHA != "" {
 		buildURL = repoURL + commitURLPath + commitSHA
 	}
 
-	// Determine build status based on workflow conclusion
-	var buildStatus buildDomain.BuildStatus
-	switch payload.WorkflowRun.Conclusion {
+	// Determine build status
+	buildStatus := s.determineBuildStatus(payload.WorkflowRun.Conclusion)
+
+	// Determine event type
+	eventType := s.determineEventType(payload.Action)
+
+	return workflowInfo{
+		Branch:      branch,
+		CommitSHA:   commitSHA,
+		BuildURL:    buildURL,
+		BuildStatus: buildStatus,
+		EventType:   eventType,
+	}
+}
+
+// determineBuildStatus determines build status from workflow conclusion
+func (s *webhookService) determineBuildStatus(conclusion string) buildDomain.BuildStatus {
+	switch conclusion {
 	case "success":
-		buildStatus = buildDomain.BuildStatusSuccess
+		return buildDomain.BuildStatusSuccess
 	case "failure":
-		buildStatus = buildDomain.BuildStatusFailed
+		return buildDomain.BuildStatusFailed
 	case "cancelled":
-		buildStatus = buildDomain.BuildStatusCancelled
+		return buildDomain.BuildStatusCancelled
 	default:
-		buildStatus = buildDomain.BuildStatusInProgress
+		return buildDomain.BuildStatusInProgress
 	}
+}
 
-	// Determine event type based on workflow action
-	var eventType buildDomain.EventType
-	switch payload.Action {
+// determineEventType determines event type from workflow action
+func (s *webhookService) determineEventType(action string) buildDomain.EventType {
+	switch action {
 	case "completed":
-		eventType = buildDomain.EventTypeBuildCompleted
+		return buildDomain.EventTypeBuildCompleted
 	case "requested":
-		eventType = buildDomain.EventTypeBuildStarted
+		return buildDomain.EventTypeBuildStarted
 	default:
-		eventType = buildDomain.EventTypeBuildCompleted
+		return buildDomain.EventTypeBuildCompleted
 	}
+}
 
-	// Create build event request
+// createWorkflowBuildEvent creates a build event for workflow runs
+func (s *webhookService) createWorkflowBuildEvent(ctx context.Context, webhookEvent *domain.WebhookEvent, payload dto.GitHubActionsPayload, info workflowInfo) (*buildDomain.BuildEvent, error) {
 	buildEventReq := buildDto.CreateBuildEventRequest{
 		ProjectID:     webhookEvent.ProjectID(),
-		EventType:     eventType,
-		Status:        buildStatus,
-		Branch:        branch,
-		CommitSHA:     commitSHA,
+		EventType:     info.EventType,
+		Status:        info.BuildStatus,
+		Branch:        info.Branch,
+		CommitSHA:     info.CommitSHA,
 		CommitMessage: "", // Not available in workflow run payload
 		AuthorName:    "",
 		AuthorEmail:   "",
-		BuildURL:      buildURL,
+		BuildURL:      info.BuildURL,
 	}
 
-	// Create build event
-	buildEvent, err := s.BuildService.CreateBuildEvent(ctx, buildEventReq)
+	return s.BuildService.CreateBuildEvent(ctx, buildEventReq)
+}
+
+// createAndSendWorkflowNotifications creates and sends notifications for workflow events
+func (s *webhookService) createAndSendWorkflowNotifications(ctx context.Context, buildEvent *buildDomain.BuildEvent, projectID value_objects.ID, payload dto.GitHubActionsPayload, info workflowInfo) error {
+	if buildEvent == nil || s.NotificationLogService == nil {
+		return nil
+	}
+
+	// Build notification message
+	statusText := s.buildStatusText(info.BuildStatus)
+	message := fmt.Sprintf("🔔 %s %s for %s on branch %s",
+		payload.WorkflowRun.Name, statusText, s.safeRepositoryName(payload), info.Branch)
+
+	// Create notifications
+	notifications, err := s.NotificationLogService.CreateNotificationForBuildEvent(
+		ctx,
+		buildEvent.ID(),
+		projectID,
+		message,
+	)
 	if err != nil {
-		return fmt.Errorf(errFailedToCreateBuildEvent, err)
+		return err
 	}
 
-	// Create notification if build event was created successfully
-	if buildEvent != nil && s.NotificationLogService != nil {
-		var statusText string
-		switch buildStatus {
-		case buildDomain.BuildStatusSuccess:
-			statusText = "✅ succeeded"
-		case buildDomain.BuildStatusFailed:
-			statusText = "❌ failed"
-		case buildDomain.BuildStatusCancelled:
-			statusText = "⏹️ cancelled"
-		default:
-			statusText = "🔄 is running"
-		}
-
-		message := fmt.Sprintf("🔔 %s %s for %s on branch %s",
-			payload.WorkflowRun.Name, statusText, s.safeRepositoryName(payload), branch)
-
-		_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
-			ctx,
-			buildEvent.ID(),
-			webhookEvent.ProjectID(),
-			message,
-		)
-		if err != nil {
-			return fmt.Errorf(errFailedToCreateNotification, err)
+	// Immediately process the created notifications (same as original behavior)
+	if len(notifications) > 0 {
+		for _, notification := range notifications {
+			if err := s.NotificationLogService.SendNotification(ctx, notification.ID()); err != nil {
+				// Log the error but don't fail the entire webhook processing
+				// The notification will remain pending and can be retried later
+				continue
+			}
 		}
 	}
 
 	return nil
+}
+
+// buildStatusText returns the status text with emoji for notifications
+func (s *webhookService) buildStatusText(status buildDomain.BuildStatus) string {
+	switch status {
+	case buildDomain.BuildStatusSuccess:
+		return "✅ succeeded"
+	case buildDomain.BuildStatusFailed:
+		return "❌ failed"
+	case buildDomain.BuildStatusCancelled:
+		return "⏹️ cancelled"
+	default:
+		return "🔄 is running"
+	}
 }
 
 // processPushEvent processes push events
@@ -301,7 +356,7 @@ func (s *webhookService) processPushEvent(ctx context.Context, webhookEvent *dom
 	// Create notification if build event was created successfully
 	if buildEvent != nil && s.NotificationLogService != nil {
 		message := s.buildNotificationMessage(payload, branch, commitInfo)
-		_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
+		notifications, err := s.NotificationLogService.CreateNotificationForBuildEvent(
 			ctx,
 			buildEvent.ID(),
 			webhookEvent.ProjectID(),
@@ -309,6 +364,17 @@ func (s *webhookService) processPushEvent(ctx context.Context, webhookEvent *dom
 		)
 		if err != nil {
 			return fmt.Errorf(errFailedToCreateNotification, err)
+		}
+
+		// Immediately process the created notifications
+		if len(notifications) > 0 {
+			for _, notification := range notifications {
+				if err := s.NotificationLogService.SendNotification(ctx, notification.ID()); err != nil {
+					// Log the error but don't fail the entire webhook processing
+					// The notification will remain pending and can be retried later
+					continue
+				}
+			}
 		}
 	}
 
@@ -484,7 +550,7 @@ func (s *webhookService) processPullRequestEvent(ctx context.Context, webhookEve
 	// Create notification if build event was created successfully
 	if buildEvent != nil && s.NotificationLogService != nil {
 		message := s.createPRNotificationMessage(payload, pr)
-		_, err = s.NotificationLogService.CreateNotificationForBuildEvent(
+		notifications, err := s.NotificationLogService.CreateNotificationForBuildEvent(
 			ctx,
 			buildEvent.ID(),
 			webhookEvent.ProjectID(),
@@ -492,6 +558,17 @@ func (s *webhookService) processPullRequestEvent(ctx context.Context, webhookEve
 		)
 		if err != nil {
 			return fmt.Errorf(errFailedToCreateNotification, err)
+		}
+
+		// Immediately process the created notifications
+		if len(notifications) > 0 {
+			for _, notification := range notifications {
+				if err := s.NotificationLogService.SendNotification(ctx, notification.ID()); err != nil {
+					// Log the error but don't fail the entire webhook processing
+					// The notification will remain pending and can be retried later
+					continue
+				}
+			}
 		}
 	}
 

@@ -197,6 +197,14 @@ func TestProcessPushEventTDD(t *testing.T) {
 			mock.AnythingOfType("string")).
 			Return(expectedNotifications, nil).Once()
 
+		// Setup mock expectations for sending notifications immediately
+		for _, notification := range expectedNotifications {
+			mockNotificationService.On("SendNotification",
+				mock.Anything,
+				notification.ID()).
+				Return(nil).Once()
+		}
+
 		// Create webhook request
 		webhookRequest := dto.ProcessWebhookRequest{
 			ProjectID:  projectID,
@@ -375,6 +383,14 @@ func TestProcessPullRequestEventTDD(t *testing.T) {
 			projectID,
 			mock.AnythingOfType("string")).
 			Return(expectedNotifications, nil).Once()
+
+		// Setup mock expectations for sending notifications immediately
+		for _, notification := range expectedNotifications {
+			mockNotificationService.On("SendNotification",
+				mock.Anything,
+				notification.ID()).
+				Return(nil).Once()
+		}
 
 		// Create webhook request
 		webhookRequest := dto.ProcessWebhookRequest{
